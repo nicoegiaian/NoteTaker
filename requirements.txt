@@ -1,7 +1,7 @@
 # requirements.txt — Dependencias del proyecto
 # Instalá todo con: pip install -r requirements.txt
 
-anthropic>=0.25.0          # Claude API
-openai-whisper>=20231117   # Transcripción de audio
-watchdog>=3.0.0            # Monitoreo de carpeta
-python-dotenv>=1.0.0       # Lectura del archivo .env
+groq>=0.9.0
+openai-whisper>=20231117
+watchdog>=3.0.0
+python-dotenv>=1.0.0

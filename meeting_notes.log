@@ -1,0 +1,381 @@
+11:37:06  ERROR     Verific� la variable ONEDRIVE_RECORDINGS_PATH en el archivo .env
+12:02:37  INFO  =======================================================
+12:02:37  INFO    Para detener: Ctrl + C
+12:02:37  INFO  =======================================================
+12:10:16  INFO  Bot detenido.
+12:14:50  INFO  =======================================================
+12:14:50  INFO    🚀  Meeting Notes Bot — Iniciado
+12:14:50  INFO    📁  Monitoreando: C:\Users\degiaian\OneDrive - ASE Conecta\Recordings
+12:14:50  INFO    💾  Output en:    C:\Users\degiaian\OneDrive - ASE Conecta\Recordings\Minutas
+12:14:50  INFO    Para detener: Ctrl + C
+12:14:50  INFO  =======================================================
+12:15:35  INFO  📥  Nueva grabación detectada: Prueba NoteTaker-20260317_150432UTC-Meeting Recording - copia.mp4
+12:15:35  INFO     ⏳  Esperando 120s a que termine la sincronización...
+12:17:35  INFO  ▶  Procesando: Prueba NoteTaker-20260317_150432UTC-Meeting Recording - copia.mp4
+12:17:35  INFO     🎙  Transcribiendo audio (puede tardar varios minutos)...
+12:17:35  INFO     Cargando modelo Whisper 'base' (primera vez puede demorar)...
+12:18:53  INFO     ✓  Transcripción completa (126 palabras)
+12:18:53  INFO     🤖  Generando notas con IA...
+12:18:53  WARNING     No se detecto proyecto en 'Prueba NoteTaker-20260317_150432UTC-Meeting Recording - copia.mp4' -> 'Sin Proyecto Asignado'
+12:18:54  INFO  Retrying request to /openai/v1/chat/completions in 0.460819 seconds
+12:18:55  INFO  Retrying request to /openai/v1/chat/completions in 0.985478 seconds
+12:18:56  ERROR     ❌  Error procesando Prueba NoteTaker-20260317_150432UTC-Meeting Recording - copia.mp4: Connection error.
+12:25:00  INFO  Bot detenido.
+12:26:24  INFO  =======================================================
+12:26:24  INFO    🚀  Meeting Notes Bot — Iniciado
+12:26:24  INFO    📁  Monitoreando: C:\Users\degiaian\OneDrive - ASE Conecta\Recordings
+12:26:24  INFO    💾  Output en:    C:\Users\degiaian\OneDrive - ASE Conecta\Recordings\Minutas
+12:26:24  INFO    Para detener: Ctrl + C
+12:26:24  INFO  =======================================================
+12:26:46  INFO  📥  Nueva grabación detectada: PROYECTO MONITOREO-20260317_150432UTC-Meeting Recording - copia.mp4
+12:26:46  INFO     ⏳  Esperando 120s a que termine la sincronización...
+12:28:46  INFO  ▶  Procesando: PROYECTO MONITOREO-20260317_150432UTC-Meeting Recording - copia.mp4
+12:28:46  INFO     🎙  Transcribiendo audio (puede tardar varios minutos)...
+12:28:46  INFO     Cargando modelo Whisper 'base' (primera vez puede demorar)...
+12:29:05  INFO     ✓  Transcripción completa (139 palabras)
+12:29:05  INFO     🤖  Generando notas con IA...
+12:29:05  WARNING     No se detecto proyecto en 'PROYECTO MONITOREO-20260317_150432UTC-Meeting Recording - copia.mp4' -> 'Sin Proyecto Asignado'
+12:29:07  INFO  HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+12:29:07  INFO     ✓  Notas generadas
+12:29:07  INFO     💾  Guardando archivo HTML...
+12:29:07  INFO     ✅  Listo: C:\Users\degiaian\OneDrive - ASE Conecta\Recordings\Minutas\20260317_1229_PROYECTO MONITOREO-20260317_150432UTC-Meeting Reco.html
+12:29:07  INFO     📋  Abrí ese archivo, copiá todo y pegalo en Loop
+14:41:41  INFO  Bot detenido.
+14:47:54  INFO  =======================================================
+14:47:54  INFO    Meeting Notes Bot — Iniciado (modo .vtt)
+14:47:54  INFO    Monitoreando: C:\Users\degiaian\OneDrive - ASE Conecta\Recordings
+14:47:54  INFO    Output en:    C:\Users\degiaian\OneDrive - ASE Conecta\Recordings\Minutas
+14:47:54  INFO    Descarga el .vtt de Teams y guardalo en esa carpeta
+14:47:54  INFO    Para detener: Ctrl + C
+14:47:54  INFO  =======================================================
+14:51:56  INFO  Nuevo .vtt detectado: Salesforce MVP Ola 0 - Validación técnica - Track #2.vtt
+14:51:56  INFO     Esperando 120s para asegurar descarga completa...
+14:53:56  INFO  Procesando: Salesforce MVP Ola 0 - Validación técnica - Track #2.vtt
+14:53:56  INFO     Leyendo transcript del .vtt...
+14:53:57  INFO     Participantes detectados: Danny, Eduardo O&#39;Brien, Javier Elder, Juan Danculovic, Leonardo Cammareri, Manuel, Marcelo Lafaille (Ingenia), Mariana Navarro, Mauricio Decima, Nicolas Egiaian, Sebastian Lanza
+14:53:57  INFO     Transcript listo: 14159 palabras
+14:53:57  INFO     Generando notas con IA...
+14:53:57  WARNING     No se detecto proyecto en 'Salesforce MVP Ola 0 - Validación técnica - Track #2.vtt' -> 'Sin Proyecto Asignado'
+14:53:57  WARNING     Transcript largo, truncando a 24000 chars...
+14:54:00  INFO  HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+14:54:00  INFO     Notas generadas
+14:54:00  INFO     Guardando HTML...
+14:54:00  INFO     LISTO: C:\Users\degiaian\OneDrive - ASE Conecta\Recordings\Minutas\20260317_1454_Salesforce MVP Ola 0 - Validación técnica - Track .html
+14:54:00  INFO     Abri ese archivo, hace clic en 'Copiar' y pega en Loop
+15:15:51  INFO  Nuevo .vtt detectado: Salesforce MVP Ola 0 - Validación técnica - Track #2.vtt
+15:15:51  INFO     Esperando 120s para asegurar descarga completa...
+15:17:51  INFO  Procesando: Salesforce MVP Ola 0 - Validación técnica - Track #2.vtt
+15:17:51  INFO     Leyendo transcript del .vtt...
+15:17:51  INFO     Participantes detectados: Danny, Eduardo O&#39;Brien, Javier Elder, Juan Danculovic, Leonardo Cammareri, Manuel, Marcelo Lafaille (Ingenia), Mariana Navarro, Mauricio Decima, Nicolas Egiaian, Sebastian Lanza
+15:17:51  INFO     Transcript listo: 14159 palabras
+15:17:51  INFO     Generando notas con IA...
+15:17:51  WARNING     No se detecto proyecto en 'Salesforce MVP Ola 0 - Validación técnica - Track #2.vtt' -> 'Sin Proyecto Asignado'
+15:17:51  WARNING     Transcript largo, truncando a 24000 chars...
+15:17:53  INFO  HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+15:17:53  INFO     Notas generadas
+15:17:53  INFO     Guardando HTML...
+15:17:53  INFO     LISTO: C:\Users\degiaian\OneDrive - ASE Conecta\Recordings\Minutas\20260317_1517_Salesforce MVP Ola 0 - Validación técnica - Track .html
+15:17:53  INFO     Abri ese archivo, hace clic en 'Copiar' y pega en Loop
+15:19:51  INFO  Bot detenido.
+15:20:08  INFO  =======================================================
+15:20:08  INFO    Meeting Notes Bot — Iniciado (modo .vtt)
+15:20:08  INFO    Monitoreando: C:\Users\degiaian\OneDrive - ASE Conecta\Recordings
+15:20:08  INFO    Output en:    C:\Users\degiaian\OneDrive - ASE Conecta\Recordings\Minutas
+15:20:08  INFO    Descarga el .vtt de Teams y guardalo en esa carpeta
+15:20:08  INFO    Para detener: Ctrl + C
+15:20:08  INFO  =======================================================
+15:27:03  INFO  Nuevo .vtt detectado: Salesforce MVP Ola 0 - Validación técnica - Track #2.vtt
+15:27:03  INFO     Esperando 120s para asegurar descarga completa...
+15:29:03  INFO  Procesando: Salesforce MVP Ola 0 - Validación técnica - Track #2.vtt
+15:29:03  INFO     Leyendo transcript del .vtt...
+15:29:03  INFO     Participantes detectados: Danny, Eduardo O&#39;Brien, Javier Elder, Juan Danculovic, Leonardo Cammareri, Manuel, Marcelo Lafaille (Ingenia), Mariana Navarro, Mauricio Decima, Nicolas Egiaian, Sebastian Lanza
+15:29:03  INFO     Transcript listo: 14159 palabras
+15:29:03  INFO     Generando notas con IA...
+15:29:03  INFO     Proyecto detectado: Programa Salesforce
+15:29:03  WARNING     Transcript largo, truncando a 80000 chars...
+15:29:04  INFO  HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 413 Payload Too Large"
+15:29:04  ERROR     Error procesando Salesforce MVP Ola 0 - Validación técnica - Track #2.vtt: Error code: 413 - {'error': {'message': 'Request too large for model `llama-3.3-70b-versatile` in organization `org_01kky4qjxefwdanb0zqrggv0pf` service tier `on_demand` on tokens per minute (TPM): Limit 12000, Requested 24617, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}
+15:59:14  INFO  Bot detenido.
+16:03:32  INFO  =======================================================
+16:03:32  INFO    Meeting Notes Bot — Iniciado (modo .vtt)
+16:03:32  INFO    Monitoreando: C:\Users\degiaian\OneDrive - ASE Conecta\Recordings
+16:03:32  INFO    Output en:    C:\Users\degiaian\OneDrive - ASE Conecta\Recordings\Minutas
+16:03:32  INFO    Descarga el .vtt de Teams y guardalo en esa carpeta
+16:03:32  INFO    Para detener: Ctrl + C
+16:03:32  INFO  =======================================================
+16:03:37  INFO  Bot detenido.
+16:08:22  INFO  =======================================================
+16:08:22  INFO    Meeting Notes Bot — Iniciado
+16:08:22  INFO    Escuchando Downloads:  C:\Users\degiaian\Downloads
+16:08:22  INFO    Procesando en:         C:\Users\degiaian\OneDrive - ASE Conecta\Recordings
+16:08:22  INFO    Notas HTML en:         C:\Users\degiaian\OneDrive - ASE Conecta\Recordings\Minutas
+16:08:22  INFO    Flujo: descargar .vtt de Teams -> se mueve solo -> notas listas
+16:08:22  INFO    Para detener: Ctrl + C
+16:08:22  INFO  =======================================================
+16:10:45  INFO  Bot detenido.
+16:14:21  INFO  =======================================================
+16:14:21  INFO    Meeting Notes Bot — Iniciado
+16:14:21  INFO    Escuchando Downloads:  C:\Users\degiaian\Downloads
+16:14:21  INFO    Procesando en:         C:\Users\degiaian\OneDrive - ASE Conecta\Recordings
+16:14:21  INFO    Notas HTML en:         C:\Users\degiaian\OneDrive - ASE Conecta\Recordings\Minutas
+16:14:21  INFO    Flujo: descargar .vtt de Teams -> se mueve solo -> notas listas
+16:14:21  INFO    Para detener: Ctrl + C
+16:14:21  INFO  =======================================================
+16:14:29  INFO  [Downloads] .vtt detectado: MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt
+16:14:29  INFO     Esperando 5s a que termine la descarga del browser...
+16:14:34  INFO     Movido a Recordings: MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt
+16:14:34  INFO  [Recordings] .vtt listo para procesar: MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt
+16:16:34  INFO  Procesando: MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt
+16:16:34  INFO     Leyendo transcript del .vtt...
+16:16:34  INFO     Participantes detectados: Ariel Chaves, Claudia Tejedor, Diego Jatemliansky, Diego Schwartzman, Juan Danculovic, Luis Beraldi, Nicolas Egiaian, Patricia Cuenca, Pilar Barral, Santiago Blanco
+16:16:34  INFO     Transcript listo: 12467 palabras
+16:16:34  INFO     Generando notas con IA...
+16:16:34  INFO     Proyecto detectado: Programa Salesforce
+16:26:33  ERROR     Error procesando MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt: Timeout of 600.0s exceeded, last exception: 503 failed to connect to all addresses; last error: UNKNOWN: ipv4:142.251.128.234:443: tcp handshaker shutdown
+22:37:31  INFO  Bot detenido.
+22:39:14  INFO  =======================================================
+22:39:14  INFO    Meeting Notes Bot — Iniciado
+22:39:14  INFO    Escuchando Downloads:  C:\Users\degiaian\Downloads
+22:39:14  INFO    Procesando en:         C:\Users\degiaian\OneDrive - ASE Conecta\Recordings
+22:39:14  INFO    Notas HTML en:         C:\Users\degiaian\OneDrive - ASE Conecta\Recordings\Minutas
+22:39:14  INFO    Flujo: descargar .vtt de Teams -> se mueve solo -> notas listas
+22:39:14  INFO    Para detener: Ctrl + C
+22:39:14  INFO  =======================================================
+22:39:21  INFO  [Recordings] .vtt listo para procesar: MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt
+22:41:21  INFO  Procesando: MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt
+22:41:21  INFO     Leyendo transcript del .vtt...
+22:41:21  INFO     Participantes detectados: Ariel Chaves, Claudia Tejedor, Diego Jatemliansky, Diego Schwartzman, Juan Danculovic, Luis Beraldi, Nicolas Egiaian, Patricia Cuenca, Pilar Barral, Santiago Blanco
+22:41:21  INFO     Transcript listo: 12467 palabras
+22:41:21  INFO     Generando notas con IA...
+22:41:21  INFO     Proyecto detectado: Programa Salesforce
+22:41:22  ERROR     Error procesando MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt: Error de Gemini API: 429 — {
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota ex
+22:49:08  INFO  Bot detenido.
+23:01:44  INFO  =======================================================
+23:01:44  INFO    Meeting Notes Bot — Iniciado
+23:01:44  INFO    Escuchando Downloads:  C:\Users\degiaian\Downloads
+23:01:44  INFO    Procesando en:         C:\Users\degiaian\OneDrive - ASE Conecta\Recordings
+23:01:44  INFO    Notas HTML en:         C:\Users\degiaian\OneDrive - ASE Conecta\Recordings\Minutas
+23:01:44  INFO    Flujo: descargar .vtt de Teams -> se mueve solo -> notas listas
+23:01:44  INFO    Para detener: Ctrl + C
+23:01:44  INFO  =======================================================
+23:01:57  INFO  [Recordings] .vtt listo para procesar: MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt
+23:05:56  INFO  =======================================================
+23:05:56  INFO    Meeting Notes Bot — Iniciado
+23:05:56  INFO    Escuchando Downloads:  C:\Users\degiaian\Downloads
+23:05:56  INFO    Procesando en:         C:\Users\degiaian\OneDrive - ASE Conecta\Recordings
+23:05:56  INFO    Notas HTML en:         C:\Users\degiaian\OneDrive - ASE Conecta\Recordings\Minutas
+23:05:56  INFO    Flujo: descargar .vtt de Teams -> se mueve solo -> notas listas
+23:05:56  INFO    Para detener: Ctrl + C
+23:05:56  INFO  =======================================================
+23:06:04  INFO  [Recordings] .vtt listo para procesar: MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt
+23:08:04  INFO  Procesando: MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt
+23:08:04  INFO     Leyendo transcript del .vtt...
+23:08:04  INFO     Participantes detectados: Ariel Chaves, Claudia Tejedor, Diego Jatemliansky, Diego Schwartzman, Juan Danculovic, Luis Beraldi, Nicolas Egiaian, Patricia Cuenca, Pilar Barral, Santiago Blanco
+23:08:04  INFO     Transcript listo: 12467 palabras
+23:08:04  INFO     Generando notas con IA...
+23:08:04  INFO     Proyecto detectado: Programa Salesforce
+23:08:05  ERROR     Error procesando MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt: Error de Gemini API: 429 — {
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota ex
+00:22:56  INFO  Bot detenido.
+00:26:21  ERROR  No se encontro GEMINI_API_KEY en el archivo .env
+00:27:03  INFO  =======================================================
+00:27:03  INFO    Meeting Notes Bot — Iniciado
+00:27:03  INFO    Escuchando Downloads:  C:\Users\degiaian\Downloads
+00:27:03  INFO    Procesando en:         C:\Users\degiaian\OneDrive - ASE Conecta\Recordings
+00:27:03  INFO    Notas HTML en:         C:\Users\degiaian\OneDrive - ASE Conecta\Recordings\Minutas
+00:27:03  INFO    Flujo: descargar .vtt de Teams -> se mueve solo -> notas listas
+00:27:03  INFO    Para detener: Ctrl + C
+00:27:03  INFO  =======================================================
+00:27:21  INFO  [Recordings] .vtt listo para procesar: MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt
+00:29:21  INFO  Procesando: MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt
+00:29:21  INFO     Leyendo transcript del .vtt...
+00:29:21  INFO     Participantes detectados: Ariel Chaves, Claudia Tejedor, Diego Jatemliansky, Diego Schwartzman, Juan Danculovic, Luis Beraldi, Nicolas Egiaian, Patricia Cuenca, Pilar Barral, Santiago Blanco
+00:29:21  INFO     Transcript listo: 12467 palabras
+00:29:21  INFO     Generando notas con IA...
+00:29:21  INFO     Proyecto detectado: Programa Salesforce
+00:29:21  WARNING     Transcript largo (72928 chars), truncando a 20000...
+00:29:22  INFO  Retrying request to /openai/v1/chat/completions in 0.449874 seconds
+00:29:22  INFO  Retrying request to /openai/v1/chat/completions in 0.924731 seconds
+00:29:23  ERROR     Error procesando MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt: Connection error.
+00:46:49  INFO  Bot detenido.
+00:46:53  INFO  =======================================================
+00:46:53  INFO    Meeting Notes Bot — Iniciado
+00:46:53  INFO    Escuchando Downloads:  C:\Users\degiaian\Downloads
+00:46:53  INFO    Procesando en:         C:\Users\degiaian\OneDrive - ASE Conecta\Recordings
+00:46:53  INFO    Notas HTML en:         C:\Users\degiaian\OneDrive - ASE Conecta\Recordings\Minutas
+00:46:53  INFO    Flujo: descargar .vtt de Teams -> se mueve solo -> notas listas
+00:46:53  INFO    Para detener: Ctrl + C
+00:46:53  INFO  =======================================================
+00:46:58  INFO  Bot detenido.
+00:47:16  INFO  =======================================================
+00:47:16  INFO    Meeting Notes Bot — Iniciado
+00:47:16  INFO    Escuchando Downloads:  C:\Users\degiaian\Downloads
+00:47:16  INFO    Procesando en:         C:\Users\degiaian\OneDrive - ASE Conecta\Recordings
+00:47:16  INFO    Notas HTML en:         C:\Users\degiaian\OneDrive - ASE Conecta\Recordings\Minutas
+00:47:16  INFO    Flujo: descargar .vtt de Teams -> se mueve solo -> notas listas
+00:47:16  INFO    Para detener: Ctrl + C
+00:47:16  INFO  =======================================================
+00:47:36  INFO  [Recordings] .vtt listo para procesar: MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt
+00:49:36  INFO  Procesando: MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt
+00:49:36  INFO     Leyendo transcript del .vtt...
+00:49:36  INFO     Participantes detectados: Ariel Chaves, Claudia Tejedor, Diego Jatemliansky, Diego Schwartzman, Juan Danculovic, Luis Beraldi, Nicolas Egiaian, Patricia Cuenca, Pilar Barral, Santiago Blanco
+00:49:36  INFO     Transcript listo: 12467 palabras
+00:49:36  INFO     Generando notas con IA...
+00:49:36  INFO     Proyecto detectado: Programa Salesforce
+00:49:36  INFO     SSL: usando certificado corporativo (C:\Users\degiaian\OneDrive - ASE Conecta\Documentos\PMO\NoteTaker\medife.crt)
+00:49:36  WARNING     Transcript largo (72928 chars), truncando a 20000...
+00:49:36  INFO  Retrying request to /openai/v1/chat/completions in 0.385429 seconds
+00:49:37  INFO  Retrying request to /openai/v1/chat/completions in 0.781583 seconds
+00:49:37  ERROR     Error procesando MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt: Connection error.
+01:43:58  INFO  Bot detenido.
+11:05:57  INFO  =======================================================
+11:05:57  INFO    Meeting Notes Bot — Iniciado
+11:05:57  INFO    Escuchando Downloads:  C:\Users\degiaian\Downloads
+11:05:57  INFO    Procesando en:         C:\Users\degiaian\OneDrive - ASE Conecta\Recordings
+11:05:57  INFO    Notas HTML en:         C:\Users\degiaian\OneDrive - ASE Conecta\Recordings\Minutas
+11:05:57  INFO    Flujo: descargar .vtt de Teams -> se mueve solo -> notas listas
+11:05:57  INFO    Para detener: Ctrl + C
+11:05:57  INFO  =======================================================
+11:07:47  INFO  [Recordings] .vtt listo para procesar: MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt
+11:09:47  INFO  Procesando: MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt
+11:09:47  INFO     Leyendo transcript del .vtt...
+11:09:47  INFO     Participantes detectados: Ariel Chaves, Claudia Tejedor, Diego Jatemliansky, Diego Schwartzman, Juan Danculovic, Luis Beraldi, Nicolas Egiaian, Patricia Cuenca, Pilar Barral, Santiago Blanco
+11:09:47  INFO     Transcript listo: 12467 palabras
+11:09:47  INFO     Generando notas con IA...
+11:09:47  INFO     Proyecto detectado: Programa Salesforce
+11:09:47  INFO     Usando modelo Ollama: llama3.1:8b
+11:19:49  ERROR     Error procesando MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt: HTTPConnectionPool(host='localhost', port=11434): Read timed out. (read timeout=600)
+12:11:54  INFO  Bot detenido.
+12:14:33  ERROR  No se encontro GROQ_API_KEY en el archivo .env
+12:18:19  INFO  =======================================================
+12:18:19  INFO    Meeting Notes Bot — Iniciado
+12:18:19  INFO    Escuchando Downloads:  C:\Users\degiaian\Downloads
+12:18:19  INFO    Procesando en:         C:\Users\degiaian\OneDrive - ASE Conecta\Recordings
+12:18:19  INFO    Notas HTML en:         C:\Users\degiaian\OneDrive - ASE Conecta\Recordings\Minutas
+12:18:19  INFO    Flujo: descargar .vtt de Teams -> se mueve solo -> notas listas
+12:18:19  INFO    Para detener: Ctrl + C
+12:18:19  INFO  =======================================================
+12:18:34  INFO  [Recordings] .vtt listo para procesar: MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt
+12:20:34  INFO  Procesando: MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt
+12:20:34  INFO     Leyendo transcript del .vtt...
+12:20:34  INFO     Participantes detectados: Ariel Chaves, Claudia Tejedor, Diego Jatemliansky, Diego Schwartzman, Juan Danculovic, Luis Beraldi, Nicolas Egiaian, Patricia Cuenca, Pilar Barral, Santiago Blanco
+12:20:34  INFO     Transcript listo: 12467 palabras
+12:20:34  INFO     Generando notas con IA...
+12:20:34  INFO     Proyecto detectado: Programa Salesforce
+12:20:34  INFO     Usando modelo Ollama: llama3.2:3b
+12:26:20  INFO     Notas generadas
+12:26:20  INFO     Guardando HTML...
+12:26:20  INFO     LISTO: C:\Users\degiaian\OneDrive - ASE Conecta\Recordings\Minutas\20260318_1226_MVP Ola 0 - Revisión escenarios de Migración previ.html
+12:26:20  INFO     Abri ese archivo, hace clic en Copiar y pega en Loop
+12:36:19  INFO  [Downloads] .vtt detectado: MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt
+12:36:19  INFO     Esperando 5s a que termine la descarga del browser...
+12:36:24  INFO     Movido a Recordings: MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt
+12:36:24  INFO  [Recordings] .vtt listo para procesar: MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt
+12:38:24  WARNING     Archivo no disponible o vacio, ignorando.
+12:38:36  INFO  =======================================================
+12:38:36  INFO    Meeting Notes Bot — Iniciado
+12:38:36  INFO    Escuchando Downloads:  C:\Users\degiaian\Downloads
+12:38:36  INFO    Procesando en:         C:\Users\degiaian\OneDrive - ASE Conecta\Recordings
+12:38:36  INFO    Notas HTML en:         C:\Users\degiaian\OneDrive - ASE Conecta\Recordings\Minutas
+12:38:36  INFO    Flujo: descargar .vtt de Teams -> se mueve solo -> notas listas
+12:38:36  INFO    Para detener: Ctrl + C
+12:38:36  INFO  =======================================================
+12:39:02  INFO  [Recordings] .vtt listo para procesar: MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt
+12:41:02  INFO  Procesando: MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt
+12:41:02  INFO     Leyendo transcript del .vtt...
+12:41:02  INFO     Participantes detectados: Ariel Chaves, Claudia Tejedor, Diego Jatemliansky, Diego Schwartzman, Juan Danculovic, Luis Beraldi, Nicolas Egiaian, Patricia Cuenca, Pilar Barral, Santiago Blanco
+12:41:02  INFO     Transcript listo: 12467 palabras
+12:41:02  INFO     Generando notas con IA...
+12:41:02  INFO     Proyecto detectado: Programa Salesforce
+12:41:03  ERROR     Error procesando MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt: Error de Gemini API: 429 — {
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota ex
+12:41:23  INFO  Bot detenido.
+12:43:23  INFO  =======================================================
+12:43:23  INFO    Meeting Notes Bot — Iniciado
+12:43:23  INFO    Escuchando Downloads:  C:\Users\degiaian\Downloads
+12:43:23  INFO    Procesando en:         C:\Users\degiaian\OneDrive - ASE Conecta\Recordings
+12:43:23  INFO    Notas HTML en:         C:\Users\degiaian\OneDrive - ASE Conecta\Recordings\Minutas
+12:43:23  INFO    Flujo: descargar .vtt de Teams -> se mueve solo -> notas listas
+12:43:23  INFO    Para detener: Ctrl + C
+12:43:23  INFO  =======================================================
+12:43:35  INFO  [Recordings] .vtt listo para procesar: MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt
+12:45:35  INFO  Procesando: MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt
+12:45:35  INFO     Leyendo transcript del .vtt...
+12:45:35  INFO     Participantes detectados: Ariel Chaves, Claudia Tejedor, Diego Jatemliansky, Diego Schwartzman, Juan Danculovic, Luis Beraldi, Nicolas Egiaian, Patricia Cuenca, Pilar Barral, Santiago Blanco
+12:45:35  INFO     Transcript listo: 12467 palabras
+12:45:35  INFO     Generando notas con IA...
+12:45:35  INFO     Proyecto detectado: Programa Salesforce
+12:45:37  ERROR     Error procesando MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt: Error de Gemini API: 429 — {
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota ex
+13:10:00  INFO  Bot detenido.
+13:15:25  INFO  =======================================================
+13:15:25  INFO    Meeting Notes Bot — Iniciado
+13:15:25  INFO    Escuchando Downloads:  C:\Users\degiaian\Downloads
+13:15:25  INFO    Procesando en:         C:\Users\degiaian\OneDrive - ASE Conecta\Recordings
+13:15:25  INFO    Notas HTML en:         C:\Users\degiaian\OneDrive - ASE Conecta\Recordings\Minutas
+13:15:25  INFO    Flujo: descargar .vtt de Teams -> se mueve solo -> notas listas
+13:15:25  INFO    Para detener: Ctrl + C
+13:15:25  INFO  =======================================================
+13:16:03  INFO  [Recordings] .vtt listo para procesar: MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt
+13:18:03  INFO  Procesando: MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt
+13:18:03  INFO     Leyendo transcript del .vtt...
+13:18:03  INFO     Participantes detectados: Ariel Chaves, Claudia Tejedor, Diego Jatemliansky, Diego Schwartzman, Juan Danculovic, Luis Beraldi, Nicolas Egiaian, Patricia Cuenca, Pilar Barral, Santiago Blanco
+13:18:03  INFO     Transcript listo: 12467 palabras
+13:18:03  INFO     Generando notas con IA...
+13:18:03  INFO     Proyecto detectado: Programa Salesforce
+13:18:04  ERROR     Error procesando MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt: Error de Gemini API: 403 — {
+  "error": {
+    "code": 403,
+    "message": "Generative Language API has not been used in project 761975339208 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/generativelanguage.googleapis.com/overview?project=761975339208 then retry. If you enabled 
+14:28:02  INFO  Bot detenido.
+14:29:12  INFO  =======================================================
+14:29:12  INFO    Meeting Notes Bot — Iniciado
+14:29:12  INFO    Escuchando Downloads:  C:\Users\degiaian\Downloads
+14:29:12  INFO    Procesando en:         C:\Users\degiaian\OneDrive - ASE Conecta\Recordings
+14:29:12  INFO    Notas HTML en:         C:\Users\degiaian\OneDrive - ASE Conecta\Recordings\Minutas
+14:29:12  INFO    Flujo: descargar .vtt de Teams -> se mueve solo -> notas listas
+14:29:12  INFO    Para detener: Ctrl + C
+14:29:12  INFO  =======================================================
+14:29:17  INFO  [Recordings] .vtt listo para procesar: MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt
+14:31:17  INFO  Procesando: MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt
+14:31:17  INFO     Leyendo transcript del .vtt...
+14:31:17  INFO     Participantes detectados: Ariel Chaves, Claudia Tejedor, Diego Jatemliansky, Diego Schwartzman, Juan Danculovic, Luis Beraldi, Nicolas Egiaian, Patricia Cuenca, Pilar Barral, Santiago Blanco
+14:31:17  INFO     Transcript listo: 12467 palabras
+14:31:17  INFO     Generando notas con IA...
+14:31:17  INFO     Proyecto detectado: Programa Salesforce
+14:31:29  ERROR  Error parseando JSON: Unterminated string starting at: line 4 column 14 (char 142)
+14:31:29  ERROR  Respuesta: {
+  "titulo": "Revisión y Ponderación de Escenarios de Migración a Salesforce (Ola 1 y 2)",
+  "proyecto": "Programa Salesforce",
+  "resumen": "La reunión tuvo como objetivo revisar los escenarios de migración para el programa Salesforce, previo a involucrar al negocio. Se analizaron cuatro escenarios, descartando dos por
+14:31:29  ERROR     Error procesando MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt: Gemini no devolvio un JSON valido: Unterminated string starting at: line 4 column 14 (char 142)
+15:22:24  INFO  Bot detenido.
+15:22:41  INFO  =======================================================
+15:22:41  INFO    Meeting Notes Bot — Iniciado
+15:22:41  INFO    Escuchando Downloads:  C:\Users\degiaian\Downloads
+15:22:41  INFO    Procesando en:         C:\Users\degiaian\OneDrive - ASE Conecta\Recordings
+15:22:41  INFO    Notas HTML en:         C:\Users\degiaian\OneDrive - ASE Conecta\Recordings\Minutas
+15:22:41  INFO    Flujo: descargar .vtt de Teams -> se mueve solo -> notas listas
+15:22:41  INFO    Para detener: Ctrl + C
+15:22:41  INFO  =======================================================
+15:22:50  INFO  [Recordings] .vtt listo para procesar: MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt
+15:24:50  INFO  Procesando: MVP Ola 0 - Revisión escenarios de Migración previo a involucrar al negocio.vtt
+15:24:50  INFO     Leyendo transcript del .vtt...
+15:24:50  INFO     Participantes detectados: Ariel Chaves, Claudia Tejedor, Diego Jatemliansky, Diego Schwartzman, Juan Danculovic, Luis Beraldi, Nicolas Egiaian, Patricia Cuenca, Pilar Barral, Santiago Blanco
+15:24:50  INFO     Transcript listo: 12467 palabras
+15:24:50  INFO     Generando notas con IA...
+15:24:50  INFO     Proyecto detectado: Programa Salesforce
+15:25:07  INFO     Notas generadas
+15:25:07  INFO     Guardando HTML...
+15:25:08  INFO     LISTO: C:\Users\degiaian\OneDrive - ASE Conecta\Recordings\Minutas\20260318_1525_MVP Ola 0 - Revisión escenarios de Migración previ.html
+15:25:08  INFO     Abri ese archivo, hace clic en Copiar y pega en Loop
+16:24:16  INFO  Bot detenido.

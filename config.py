@@ -27,11 +27,15 @@ IDIOMA_REUNIONES = "es"
 # No distingue mayúsculas/minúsculas
 # ----------------------------------------------------------
 PROYECTOS = {
-    "Alpha":        "Proyecto Alpha",
-    "Beta":         "Proyecto Beta",
-    "Gamma":        "Proyecto Gamma",
-    "ERP":          "Implementación ERP",
-    "Migración":    "Proyecto Migración Cloud",
+    "Salesforce":        "Programa Salesforce",
+    "NICE":        "Programa Salesforce",
+    "Ola 0":        "Programa Salesforce",
+    "Ola0":        "Programa Salesforce",
+    "Ola 1":        "Programa Salesforce",
+    "Ola1":        "Programa Salesforce",
+    "Monitoreo":         "Proyecto Monitoreo",
+    "Obsolescencia":        "Proyecto Obsolescencia",
+    "DevSecOps":          "Proyecto DevSecOps",
     # Agregá tus proyectos acá ↑
 }
 

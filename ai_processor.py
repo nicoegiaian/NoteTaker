@@ -1,129 +1,130 @@
 """
-ai_processor.py — Procesamiento con Claude API
-Recibe la transcripción y devuelve las notas estructuradas.
+ai_processor.py — Gemini via REST API directa
+Evita gRPC (que no soporta SSL corporativo) usando requests con verify=False.
 """
 
 import os
 import re
-import anthropic
+import json
 import logging
+import requests
+import urllib3
 from config import PROYECTOS, PROYECTO_DESCONOCIDO
 
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 log = logging.getLogger(__name__)
 
-# Cliente de Anthropic (se inicializa una vez)
-_cliente = None
-
-def _get_cliente():
-    global _cliente
-    if _cliente is None:
-        _cliente = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-    return _cliente
+GEMINI_URL = (
+    "https://generativelanguage.googleapis.com/v1beta/models/"
+    "gemini-2.5-flash:generateContent"
+)
 
 
 def detectar_proyecto(nombre_archivo: str) -> str:
-    """
-    Detecta a qué proyecto pertenece la reunión basándose en el nombre del archivo.
-    
-    Args:
-        nombre_archivo: Nombre del archivo .mp4
-        
-    Returns:
-        Nombre del proyecto detectado
-    """
     nombre_lower = nombre_archivo.lower()
     for clave, proyecto in PROYECTOS.items():
         if clave.lower() in nombre_lower:
             log.info(f"   Proyecto detectado: {proyecto}")
             return proyecto
-
-    log.warning(f"   No se detectó proyecto en '{nombre_archivo}' → asignando '{PROYECTO_DESCONOCIDO}'")
+    log.warning(f"   No se detecto proyecto en '{nombre_archivo}' -> '{PROYECTO_DESCONOCIDO}'")
     return PROYECTO_DESCONOCIDO
 
 
 def generar_notas(transcript: str, nombre_archivo: str) -> dict:
-    """
-    Envía la transcripción a Claude y recibe las notas estructuradas.
-    
-    Args:
-        transcript:     Texto completo de la reunión
-        nombre_archivo: Nombre del archivo para contexto
-        
-    Returns:
-        Diccionario con todas las secciones de las notas
-    """
     proyecto = detectar_proyecto(nombre_archivo)
-    cliente  = _get_cliente()
+    api_key  = os.getenv("GEMINI_API_KEY")
 
-    # Limitar tamaño del transcript para no exceder el contexto
-    # Claude puede manejar hasta ~200k tokens pero limitamos para controlar costo
-    MAX_CHARS = 80_000
+    if not api_key:
+        raise ValueError("No se encontro GEMINI_API_KEY en el archivo .env")
+
+    MAX_CHARS = 200_000
     if len(transcript) > MAX_CHARS:
-        log.warning(f"   Transcripción muy larga ({len(transcript)} chars), truncando a {MAX_CHARS}...")
-        transcript = transcript[:MAX_CHARS] + "\n\n[... transcripción truncada por longitud ...]"
+        log.warning(f"   Transcript muy largo, truncando a {MAX_CHARS} chars...")
+        transcript = transcript[:MAX_CHARS] + "\n\n[... truncado ...]"
 
-    prompt = f"""Sos un asistente experto en gestión de proyectos. Analizá la siguiente transcripción de una reunión de trabajo y generá notas estructuradas y accionables.
+    prompt = f"""Sos un asistente experto en gestion de proyectos. Analiza el siguiente transcript de una reunion de Microsoft Teams.
 
-NOMBRE DE LA REUNIÓN: {nombre_archivo}
+Los nombres de los participantes son reales (vienen del sistema oficial de Teams).
+Formato del transcript: "Nombre Apellido: texto que dijo"
+
+REUNION: {nombre_archivo}
 PROYECTO: {proyecto}
 
-TRANSCRIPCIÓN:
+TRANSCRIPT:
 {transcript}
 
 ---
-
-Generá las notas en el siguiente formato JSON exacto (sin texto adicional antes o después):
+Responde UNICAMENTE con este JSON exacto (sin markdown, sin texto antes o despues):
 
 {{
-  "titulo": "Título descriptivo de la reunión (no solo el nombre del archivo)",
+  "titulo": "Titulo descriptivo de la reunion (no solo el nombre del archivo)",
   "proyecto": "{proyecto}",
-  "resumen": "Párrafo de 3-5 oraciones con el contexto, objetivo y principales conclusiones de la reunión. Escribilo en español, en tercera persona.",
+  "resumen": "3-5 oraciones con contexto, objetivo y conclusiones principales. En español, tercera persona.",
   "acciones": [
     {{
-      "descripcion": "Descripción clara y accionable de la tarea",
-      "responsable": "Nombre de la persona responsable (o 'Por definir' si no se menciona)",
-      "fecha_limite": "Fecha mencionada en formato DD/MM o 'Sin fecha definida'"
+      "descripcion": "Tarea especifica y accionable",
+      "responsable": "Nombre completo extraido del transcript (o 'Por definir')",
+      "fecha_limite": "DD/MM o 'Sin fecha definida'"
     }}
   ],
   "dependencias": [
     {{
-      "descripcion": "Qué está bloqueado o condicionado",
-      "depende_de": "De qué o quién depende"
+      "descripcion": "Que esta bloqueado o condicionado",
+      "depende_de": "De que o quien depende"
     }}
   ],
-  "proximos_pasos": [
-    "Paso 1 concreto y verificable",
-    "Paso 2 concreto y verificable"
-  ],
-  "participantes": ["Nombre 1", "Nombre 2"],
-  "temas_pendientes": ["Tema que quedó sin resolver 1", "Tema 2"]
+  "proximos_pasos": ["Paso concreto 1", "Paso concreto 2"],
+  "participantes": ["Nombre completo 1", "Nombre completo 2"],
+  "temas_pendientes": ["Tema sin resolver 1"]
 }}
 
-Reglas importantes:
-- Si no hay acciones, dependencias o temas pendientes, usá listas vacías []
-- Todas las acciones deben ser específicas y accionables (no genéricas como "hacer seguimiento")
-- Solo incluí información que esté en la transcripción, no inventes datos
-- Respondé ÚNICAMENTE con el JSON, sin markdown, sin texto adicional
-"""
+Reglas:
+- Usa los nombres reales del transcript para responsables y participantes
+- Si alguien dice "yo me encargo" identifica quien es por contexto
+- Solo incluye informacion que este en el transcript, no inventes datos
+- Si no hay acciones, dependencias o temas pendientes, usa listas vacias []
+- Responde UNICAMENTE con el JSON, sin markdown, sin texto adicional"""
 
-    mensaje = cliente.messages.create(
-        model="claude-opus-4-5",
-        max_tokens=2000,
-        messages=[{"role": "user", "content": prompt}]
+    payload = {
+        "contents": [
+            {"parts": [{"text": prompt}]}
+        ],
+        "generationConfig": {
+            "temperature": 0.2,
+            "maxOutputTokens": 8192,
+        }
+    }
+
+    respuesta = requests.post(
+        GEMINI_URL,
+        params={"key": api_key},
+        json=payload,
+        verify=False,          # bypass SSL corporativo
+        timeout=120,
     )
 
-    respuesta_texto = mensaje.content[0].text.strip()
+    if respuesta.status_code != 200:
+        raise ValueError(f"Error de Gemini API: {respuesta.status_code} — {respuesta.text[:300]}")
 
-    # Parsear el JSON de respuesta
+    respuesta_json = respuesta.json()
+
+    uso = respuesta_json.get("usageMetadata", {})
+log.info(f"   Tokens usados — entrada: {uso.get('promptTokenCount', '?')}, "
+         f"salida: {uso.get('candidatesTokenCount', '?')}, "
+         f"total: {uso.get('totalTokenCount', '?')}")
+
     try:
-        import json
-        # A veces Claude envuelve el JSON en backticks, limpiamos eso
-        respuesta_limpia = re.sub(r'^```(?:json)?\n?', '', respuesta_texto)
-        respuesta_limpia = re.sub(r'\n?```$', '', respuesta_limpia)
-        notas = json.loads(respuesta_limpia)
-    except Exception as e:
-        log.error(f"Error parseando respuesta JSON de Claude: {e}")
-        log.error(f"Respuesta recibida: {respuesta_texto[:500]}")
-        raise ValueError(f"Claude no devolvió un JSON válido: {e}")
+        texto = respuesta_json["candidates"][0]["content"]["parts"][0]["text"].strip()
+    except (KeyError, IndexError) as e:
+        raise ValueError(f"Respuesta inesperada de Gemini: {respuesta_json}") from e
 
-    return notas
+    # Limpiar posibles backticks de markdown
+    texto = re.sub(r'^```(?:json)?\n?', '', texto)
+    texto = re.sub(r'\n?```$', '', texto)
+
+    try:
+        return json.loads(texto)
+    except Exception as e:
+        log.error(f"Error parseando JSON: {e}")
+        log.error(f"Respuesta: {texto[:500]}")
+        raise ValueError(f"Gemini no devolvio un JSON valido: {e}")

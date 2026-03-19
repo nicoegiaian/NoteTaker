@@ -146,14 +146,31 @@ def guardar_html(notas: dict, nombre_archivo: str, output_folder: str) -> str:
     border-bottom: 2px solid #eee;
   }}
 
+  /* Anchos fijos por columna */
+  .acciones-table th:nth-child(1),
+  .acciones-table td:nth-child(1) {{ width: 55%; }}
+  .acciones-table th:nth-child(2),
+  .acciones-table td:nth-child(2) {{ width: 28%; }}
+  .acciones-table th:nth-child(3),
+  .acciones-table td:nth-child(3) {{ width: 17%; }}
+
   .acciones-table td {{
     padding: 12px 14px;
     border-bottom: 1px solid #f0f0f0;
     vertical-align: top;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }}
 
   .acciones-table tr:last-child td {{ border-bottom: none; }}
   .acciones-table tr:hover td {{ background: #fafafa; }}
+
+  /* Celda de responsables: permite múltiples chips en varias líneas */
+  .responsables-cell {{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }}
 
   .responsable-chip {{
     display: inline-block;
@@ -164,7 +181,8 @@ def guardar_html(notas: dict, nombre_archivo: str, output_folder: str) -> str:
     font-weight: 500;
     padding: 2px 10px;
     border-radius: 20px;
-    white-space: nowrap;
+    white-space: normal;
+    word-break: break-word;
   }}
 
   .fecha-chip {{
@@ -176,7 +194,7 @@ def guardar_html(notas: dict, nombre_archivo: str, output_folder: str) -> str:
     font-weight: 500;
     padding: 2px 10px;
     border-radius: 20px;
-    white-space: nowrap;
+    white-space: normal;
   }}
 
   .fecha-chip.sin-fecha {{
@@ -397,6 +415,25 @@ function copiarContenido(btn) {{
     return ruta_output
 
 
+def _render_responsables(responsable_str: str) -> str:
+    """
+    Convierte el string de responsable en chips individuales.
+    Maneja casos como "Juan, María" o "Juan / María" o "Juan y María".
+    """
+    if not responsable_str or responsable_str == "Por definir":
+        return '<span class="responsable-chip">Por definir</span>'
+
+    # Separar por coma, slash, " y ", " & "
+    import re
+    partes = re.split(r',|/| y | & ', responsable_str)
+    chips = ""
+    for p in partes:
+        nombre = p.strip()
+        if nombre:
+            chips += f'<span class="responsable-chip">{nombre}</span>'
+    return chips
+
+
 def _render_acciones(acciones: list) -> str:
     if not acciones:
         return '<p style="color:#888;font-size:14px;">No se identificaron acciones específicas.</p>'
@@ -405,10 +442,11 @@ def _render_acciones(acciones: list) -> str:
     for a in acciones:
         tiene_fecha = a.get("fecha_limite", "Sin fecha definida") != "Sin fecha definida"
         clase_fecha = "fecha-chip" if tiene_fecha else "fecha-chip sin-fecha"
+        chips_responsables = _render_responsables(a.get('responsable', 'Por definir'))
         filas += f"""
         <tr>
           <td>{a.get('descripcion', '')}</td>
-          <td><span class="responsable-chip">{a.get('responsable', 'Por definir')}</span></td>
+          <td><div class="responsables-cell">{chips_responsables}</div></td>
           <td><span class="{clase_fecha}">{a.get('fecha_limite', 'Sin fecha')}</span></td>
         </tr>"""
 
