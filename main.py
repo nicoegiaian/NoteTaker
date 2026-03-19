@@ -6,6 +6,7 @@ Monitorea DOS carpetas:
 """
 from dotenv import load_dotenv
 load_dotenv()
+os.environ["PATH"] += r";C:\Users\degiaian\ffmpeg\bin"
 
 import os
 import sys
