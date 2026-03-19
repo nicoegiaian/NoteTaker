@@ -1,11 +1,12 @@
 """
 main.py — Orquestador principal
 Monitorea DOS carpetas:
-  1. Downloads  → detecta .vtt nuevos y los MUEVE a Recordings
-  2. Recordings → detecta .vtt y los procesa (genera notas HTML)
+  1. Downloads  -> detecta .vtt nuevos y los MUEVE a Recordings
+  2. Recordings -> detecta .vtt y los procesa (genera notas HTML)
 """
 from dotenv import load_dotenv
 load_dotenv()
+
 import os
 import sys
 import time
@@ -20,11 +21,11 @@ from transcriber import transcribir_audio
 from ai_processor import generar_notas
 from output_generator import guardar_html
 
-# ── Encoding para emojis en Windows ──────────────────────
+# Encoding para Windows
 if sys.stdout.encoding != "utf-8":
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-# ── Configuracion de logs ─────────────────────────────────
+# Configuracion de logs
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s  %(levelname)s  %(message)s",
@@ -36,13 +37,12 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-# ── Cargar configuracion ──────────────────────────────────
-load_dotenv()
+# Cargar configuracion
 RECORDINGS_PATH = os.getenv("ONEDRIVE_RECORDINGS_PATH")
 OUTPUT_FOLDER   = os.getenv("OUTPUT_FOLDER")
 DOWNLOADS_PATH  = os.getenv(
     "DOWNLOADS_PATH",
-    str(Path.home() / "Downloads")   # default: C:\Users\<nombre>\Downloads
+    str(Path.home() / "Downloads")
 )
 
 
@@ -54,7 +54,7 @@ def procesar_grabacion(ruta_archivo: str):
     try:
         log.info("   Leyendo transcript del .vtt...")
         transcript = transcribir_audio(ruta_archivo)
-        palabras   = len(transcript.split())
+        palabras = len(transcript.split())
         log.info(f"   Transcript listo: {palabras} palabras")
 
         log.info("   Generando notas con IA...")
@@ -74,28 +74,24 @@ def procesar_grabacion(ruta_archivo: str):
 class WatcherDownloads(FileSystemEventHandler):
     """
     Monitorea la carpeta Downloads.
-    Cuando detecta un .vtt nuevo, lo mueve a Recordings.
-    El WatcherRecordings se encarga del resto.
+    Maneja tanto on_created como on_moved porque los navegadores
+    descargan a un archivo temporal y luego lo renombran al .vtt final.
     """
 
     def __init__(self):
         self.en_proceso = set()
 
-    def on_created(self, event):
-        if event.is_directory:
-            return
-
-        ruta = event.src_path
-        if Path(ruta).suffix.lower() != ".vtt":
-            return
+    def _mover_a_recordings(self, ruta: str):
         if ruta in self.en_proceso:
+            return
+        if Path(ruta).suffix.lower() != ".vtt":
             return
 
         self.en_proceso.add(ruta)
         nombre = Path(ruta).name
         log.info(f"[Downloads] .vtt detectado: {nombre}")
-        log.info(f"   Esperando 5s a que termine la descarga del browser...")
-        time.sleep(5)
+
+        time.sleep(3)
 
         if not os.path.exists(ruta) or os.path.getsize(ruta) < 100:
             log.warning("   Archivo no disponible o vacio, ignorando.")
@@ -103,31 +99,34 @@ class WatcherDownloads(FileSystemEventHandler):
             return
 
         destino = os.path.join(RECORDINGS_PATH, nombre)
-
-        # Si ya existe un archivo con ese nombre en destino, agregar timestamp
         if os.path.exists(destino):
-            stem      = Path(nombre).stem
-            suffix    = Path(nombre).suffix
+            stem = Path(nombre).stem
+            suffix = Path(nombre).suffix
             timestamp = time.strftime("%H%M%S")
-            destino   = os.path.join(RECORDINGS_PATH, f"{stem}_{timestamp}{suffix}")
-          
-        log.info(f"   RECORDINGS_PATH vale: '{RECORDINGS_PATH}'")
-        log.info(f"   Destino calculado: '{destino}'")
-        log.info(f"   Destino existe: {os.path.exists(os.path.dirname(destino))}")
+            destino = os.path.join(RECORDINGS_PATH, f"{stem}_{timestamp}{suffix}")
+
+        log.info(f"   Moviendo a: '{destino}'")
         try:
-             shutil.move(ruta, destino)
-            log.info(f"   Movido a Recordings: {Path(destino).name}")
+            shutil.move(ruta, destino)
+            log.info(f"   Movido OK: {Path(destino).name}")
         except Exception as e:
-            log.error(f"   Error al mover archivo: {e}")
+            log.error(f"   Error al mover: {e}")
 
         self.en_proceso.discard(ruta)
 
+    def on_created(self, event):
+        if not event.is_directory:
+            self._mover_a_recordings(event.src_path)
+
+    def on_moved(self, event):
+        # El navegador renombra el .crdownload/.tmp al .vtt final
+        if not event.is_directory:
+            self._mover_a_recordings(event.dest_path)
 
 class WatcherRecordings(FileSystemEventHandler):
     """
     Monitorea la carpeta Recordings.
-    Cuando detecta un .vtt (movido desde Downloads o puesto manualmente),
-    espera que esté completo y lo procesa.
+    Cuando detecta un .vtt lo procesa y genera el HTML.
     """
 
     def __init__(self):
@@ -147,7 +146,6 @@ class WatcherRecordings(FileSystemEventHandler):
         nombre = Path(ruta).name
         log.info(f"[Recordings] .vtt listo para procesar: {nombre}")
 
-        # Espera breve para asegurar que el move/sync terminó
         time.sleep(ESPERA_SINCRONIZACION_SEG)
 
         if not os.path.exists(ruta) or os.path.getsize(ruta) < 100:
@@ -160,21 +158,24 @@ class WatcherRecordings(FileSystemEventHandler):
 
 
 def main():
-    # Validaciones
     if not RECORDINGS_PATH or not os.path.exists(RECORDINGS_PATH):
-        log.error(f"No se encuentra la carpeta Recordings: {RECORDINGS_PATH}")
+        log.error(f"No se encuentra la carpeta Recordings: '{RECORDINGS_PATH}'")
         log.error("Verifica ONEDRIVE_RECORDINGS_PATH en el archivo .env")
         return
 
     if not os.path.exists(DOWNLOADS_PATH):
-        log.error(f"No se encuentra la carpeta Downloads: {DOWNLOADS_PATH}")
-        log.error("Verifica DOWNLOADS_PATH en el archivo .env o que la ruta exista")
+        log.error(f"No se encuentra la carpeta Downloads: '{DOWNLOADS_PATH}'")
+        log.error("Verifica DOWNLOADS_PATH en el archivo .env")
+        return
+
+    if not os.getenv("GEMINI_API_KEY"):
+        log.error("No se encontro GEMINI_API_KEY en el archivo .env")
         return
 
     Path(OUTPUT_FOLDER).mkdir(parents=True, exist_ok=True)
 
     log.info("=" * 55)
-    log.info("  Meeting Notes Bot — Iniciado")
+    log.info("  Meeting Notes Bot - Iniciado")
     log.info(f"  Escuchando Downloads:  {DOWNLOADS_PATH}")
     log.info(f"  Procesando en:         {RECORDINGS_PATH}")
     log.info(f"  Notas HTML en:         {OUTPUT_FOLDER}")
@@ -183,13 +184,8 @@ def main():
     log.info("=" * 55)
 
     observer = Observer()
-
-    # Watcher 1 — Downloads: mueve .vtt a Recordings
     observer.schedule(WatcherDownloads(), DOWNLOADS_PATH, recursive=False)
-
-    # Watcher 2 — Recordings: procesa .vtt y genera HTML
     observer.schedule(WatcherRecordings(), RECORDINGS_PATH, recursive=True)
-
     observer.start()
 
     try:
