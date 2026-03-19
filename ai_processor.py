@@ -109,19 +109,15 @@ Reglas:
     respuesta_json = respuesta.json()
 
     uso = respuesta_json.get("usageMetadata", {})
-log.info(f"   Tokens usados — entrada: {uso.get('promptTokenCount', '?')}, "
-         f"salida: {uso.get('candidatesTokenCount', '?')}, "
-         f"total: {uso.get('totalTokenCount', '?')}")
-
+    log.info(f"   Tokens usados - entrada: {uso.get('promptTokenCount', '?')}, "
+             f"salida: {uso.get('candidatesTokenCount', '?')}, "
+             f"total: {uso.get('totalTokenCount', '?')}")
     try:
         texto = respuesta_json["candidates"][0]["content"]["parts"][0]["text"].strip()
     except (KeyError, IndexError) as e:
         raise ValueError(f"Respuesta inesperada de Gemini: {respuesta_json}") from e
-
-    # Limpiar posibles backticks de markdown
     texto = re.sub(r'^```(?:json)?\n?', '', texto)
     texto = re.sub(r'\n?```$', '', texto)
-
     try:
         return json.loads(texto)
     except Exception as e:
