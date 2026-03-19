@@ -1,8 +1,9 @@
 """
 main.py — Orquestador principal
-Monitorea DOS carpetas:
+Monitorea TRES carpetas/eventos:
   1. Downloads  -> detecta .vtt nuevos y los MUEVE a Recordings
   2. Recordings -> detecta .vtt y los procesa (genera notas HTML)
+  3. Recordings -> detecta .mp4 nuevos y avisa que hay que bajar el .vtt
 """
 from dotenv import load_dotenv
 load_dotenv()
@@ -16,13 +17,20 @@ from pathlib import Path
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
+# Agregar ffmpeg al PATH
 os.environ["PATH"] += r";C:\Users\degiaian\ffmpeg\bin"
-
 
 from config import ESPERA_SINCRONIZACION_SEG
 from transcriber import transcribir_audio
 from ai_processor import generar_notas
 from output_generator import guardar_html
+from registro import ya_procesado, marcar_procesado, obtener_info
+from notificaciones import (
+    nueva_grabacion_disponible,
+    archivo_duplicado,
+    minuta_lista,
+    error_procesamiento,
+)
 
 # Encoding para Windows
 if sys.stdout.encoding != "utf-8":
@@ -52,6 +60,15 @@ DOWNLOADS_PATH  = os.getenv(
 def procesar_grabacion(ruta_archivo: str):
     """Pipeline: .vtt -> transcript -> notas -> HTML"""
     nombre = Path(ruta_archivo).name
+
+    # Verificar duplicado antes de procesar
+    if ya_procesado(nombre):
+        info = obtener_info(nombre)
+        fecha = info.get("procesado_el", "fecha desconocida")
+        log.warning(f"DUPLICADO: '{nombre}' ya fue procesado el {fecha}")
+        archivo_duplicado(nombre, fecha)
+        return
+
     log.info(f"Procesando: {nombre}")
 
     try:
@@ -69,16 +86,26 @@ def procesar_grabacion(ruta_archivo: str):
         log.info(f"   LISTO: {ruta_output}")
         log.info(f"   Abri ese archivo, hace clic en Copiar y pega en Loop")
 
+        # Registrar como procesado exitosamente
+        marcar_procesado(nombre, ruta_output)
+
+        # Notificacion de exito
+        minuta_lista(
+            notas.get("titulo", nombre),
+            notas.get("proyecto", "Sin proyecto")
+        )
+
     except Exception as e:
         log.error(f"   Error procesando {nombre}: {e}")
+        error_procesamiento(nombre, str(e))
         raise
 
 
 class WatcherDownloads(FileSystemEventHandler):
     """
-    Monitorea la carpeta Downloads.
-    Maneja tanto on_created como on_moved porque los navegadores
-    descargan a un archivo temporal y luego lo renombran al .vtt final.
+    Monitorea Downloads.
+    Maneja on_created y on_moved porque los navegadores
+    descargan a archivo temporal y luego lo renombran al .vtt final.
     """
 
     def __init__(self):
@@ -93,7 +120,6 @@ class WatcherDownloads(FileSystemEventHandler):
         self.en_proceso.add(ruta)
         nombre = Path(ruta).name
         log.info(f"[Downloads] .vtt detectado: {nombre}")
-
         time.sleep(3)
 
         if not os.path.exists(ruta) or os.path.getsize(ruta) < 100:
@@ -122,26 +148,36 @@ class WatcherDownloads(FileSystemEventHandler):
             self._mover_a_recordings(event.src_path)
 
     def on_moved(self, event):
-        # El navegador renombra el .crdownload/.tmp al .vtt final
         if not event.is_directory:
             self._mover_a_recordings(event.dest_path)
 
+
 class WatcherRecordings(FileSystemEventHandler):
     """
-    Monitorea la carpeta Recordings.
-    Cuando detecta un .vtt lo procesa y genera el HTML.
+    Monitorea Recordings.
+    - .vtt nuevos: los procesa y genera HTML
+    - .mp4 nuevos: avisa que hay que descargar el .vtt
     """
 
     def __init__(self):
         self.en_proceso = set()
+        # Esperar 30 min antes de avisar por el .mp4
+        # (Teams tarda en generar la transcripcion)
+        self.ESPERA_MP4_SEG = 1800
 
     def on_created(self, event):
         if event.is_directory:
             return
 
         ruta = event.src_path
-        if Path(ruta).suffix.lower() != ".vtt":
-            return
+        ext  = Path(ruta).suffix.lower()
+
+        if ext == ".vtt":
+            self._procesar_vtt(ruta)
+        elif ext == ".mp4":
+            self._avisar_mp4(ruta)
+
+    def _procesar_vtt(self, ruta: str):
         if ruta in self.en_proceso:
             return
 
@@ -158,6 +194,36 @@ class WatcherRecordings(FileSystemEventHandler):
 
         procesar_grabacion(ruta)
         self.en_proceso.discard(ruta)
+
+    def _avisar_mp4(self, ruta: str):
+        """
+        Cuando aparece un .mp4 nuevo, espera 30 minutos y luego
+        verifica si ya fue procesado el .vtt correspondiente.
+        Si no fue procesado, manda una notificacion recordatorio.
+        """
+        import threading
+
+        nombre_mp4  = Path(ruta).name
+        # El .vtt de Teams tiene el mismo nombre que el .mp4
+        nombre_vtt  = Path(ruta).stem + ".vtt"
+
+        def _chequear_despues():
+            log.info(f"[Recordings] Nuevo .mp4 detectado: {nombre_mp4}")
+            log.info(f"   Esperando {self.ESPERA_MP4_SEG//60} min para verificar si se proceso el .vtt...")
+            time.sleep(self.ESPERA_MP4_SEG)
+
+            if ya_procesado(nombre_vtt):
+                log.info(f"   .vtt ya procesado para: {nombre_mp4} - sin notificacion")
+            else:
+                log.info(f"   .vtt pendiente para: {nombre_mp4} - enviando recordatorio")
+                # Limpiar el nombre para la notificacion
+                nombre_limpio = Path(nombre_mp4).stem
+                nombre_limpio = nombre_limpio.replace("-20", " -20")  # separar fecha
+                nueva_grabacion_disponible(nombre_limpio)
+
+        # Correr en thread separado para no bloquear el watcher
+        t = threading.Thread(target=_chequear_despues, daemon=True)
+        t.start()
 
 
 def main():
