@@ -6,7 +6,6 @@ Monitorea DOS carpetas:
 """
 from dotenv import load_dotenv
 load_dotenv()
-os.environ["PATH"] += r";C:\Users\degiaian\ffmpeg\bin"
 
 import os
 import sys
@@ -16,6 +15,9 @@ import logging
 from pathlib import Path
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+
+os.environ["PATH"] += r";C:\Users\degiaian\ffmpeg\bin"
+
 
 from config import ESPERA_SINCRONIZACION_SEG
 from transcriber import transcribir_audio
