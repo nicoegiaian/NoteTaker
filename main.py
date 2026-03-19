@@ -110,9 +110,15 @@ class WatcherDownloads(FileSystemEventHandler):
             suffix    = Path(nombre).suffix
             timestamp = time.strftime("%H%M%S")
             destino   = os.path.join(RECORDINGS_PATH, f"{stem}_{timestamp}{suffix}")
-
-        shutil.move(ruta, destino)
-        log.info(f"   Movido a Recordings: {Path(destino).name}")
+          
+        log.info(f"   RECORDINGS_PATH vale: '{RECORDINGS_PATH}'")
+        log.info(f"   Destino calculado: '{destino}'")
+        log.info(f"   Destino existe: {os.path.exists(os.path.dirname(destino))}")
+        try:
+             shutil.move(ruta, destino)
+            log.info(f"   Movido a Recordings: {Path(destino).name}")
+        except Exception as e:
+            log.error(f"   Error al mover archivo: {e}")
 
         self.en_proceso.discard(ruta)
 
