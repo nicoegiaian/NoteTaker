@@ -1,6 +1,6 @@
 """
 ai_processor.py — Gemini via REST API directa
-Evita gRPC (que no soporta SSL corporativo) usando requests con verify=False.
+Usa response_mime_type: application/json para evitar JSON malformado.
 """
 
 import os
@@ -54,36 +54,21 @@ TRANSCRIPT:
 {transcript}
 
 ---
-Responde UNICAMENTE con este JSON exacto (sin markdown, sin texto antes o despues):
-
-{{
-  "titulo": "Titulo descriptivo de la reunion (no solo el nombre del archivo)",
-  "proyecto": "{proyecto}",
-  "resumen": "3-5 oraciones con contexto, objetivo y conclusiones principales. En español, tercera persona.",
-  "acciones": [
-    {{
-      "descripcion": "Tarea especifica y accionable",
-      "responsable": "Nombre completo extraido del transcript (o 'Por definir')",
-      "fecha_limite": "DD/MM o 'Sin fecha definida'"
-    }}
-  ],
-  "dependencias": [
-    {{
-      "descripcion": "Que esta bloqueado o condicionado",
-      "depende_de": "De que o quien depende"
-    }}
-  ],
-  "proximos_pasos": ["Paso concreto 1", "Paso concreto 2"],
-  "participantes": ["Nombre completo 1", "Nombre completo 2"],
-  "temas_pendientes": ["Tema sin resolver 1"]
-}}
+Genera un JSON con exactamente estas claves:
+- titulo: string con titulo descriptivo de la reunion
+- proyecto: string con el nombre del proyecto ("{proyecto}")
+- resumen: string con 3-5 oraciones sobre contexto, objetivo y conclusiones. En español, tercera persona.
+- acciones: lista de objetos con claves "descripcion", "responsable", "fecha_limite"
+- dependencias: lista de objetos con claves "descripcion", "depende_de"
+- proximos_pasos: lista de strings
+- participantes: lista de strings con nombres completos
+- temas_pendientes: lista de strings
 
 Reglas:
 - Usa los nombres reales del transcript para responsables y participantes
 - Si alguien dice "yo me encargo" identifica quien es por contexto
 - Solo incluye informacion que este en el transcript, no inventes datos
-- Si no hay acciones, dependencias o temas pendientes, usa listas vacias []
-- Responde UNICAMENTE con el JSON, sin markdown, sin texto adicional"""
+- Si no hay acciones, dependencias o temas pendientes, usa listas vacias"""
 
     payload = {
         "contents": [
@@ -92,6 +77,7 @@ Reglas:
         "generationConfig": {
             "temperature": 0.2,
             "maxOutputTokens": 8192,
+            "response_mime_type": "application/json",
         }
     }
 
@@ -99,7 +85,7 @@ Reglas:
         GEMINI_URL,
         params={"key": api_key},
         json=payload,
-        verify=False,          # bypass SSL corporativo
+        verify=False,
         timeout=120,
     )
 
@@ -112,15 +98,20 @@ Reglas:
     log.info(f"   Tokens usados - entrada: {uso.get('promptTokenCount', '?')}, "
              f"salida: {uso.get('candidatesTokenCount', '?')}, "
              f"total: {uso.get('totalTokenCount', '?')}")
+
     try:
         texto = respuesta_json["candidates"][0]["content"]["parts"][0]["text"].strip()
     except (KeyError, IndexError) as e:
         raise ValueError(f"Respuesta inesperada de Gemini: {respuesta_json}") from e
+
+    # Con response_mime_type: application/json Gemini devuelve JSON puro
+    # pero limpiamos backticks por si acaso
     texto = re.sub(r'^```(?:json)?\n?', '', texto)
     texto = re.sub(r'\n?```$', '', texto)
+
     try:
         return json.loads(texto)
     except Exception as e:
         log.error(f"Error parseando JSON: {e}")
-        log.error(f"Respuesta: {texto[:500]}")
+        log.error(f"Respuesta (primeros 500 chars): {texto[:500]}")
         raise ValueError(f"Gemini no devolvio un JSON valido: {e}")
