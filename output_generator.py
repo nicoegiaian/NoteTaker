@@ -317,6 +317,21 @@ def guardar_html(notas: dict, nombre_archivo: str, output_folder: str) -> str:
     .card {{ box-shadow: none; padding: 20px; }}
     .copy-btn {{ display: none; }}
   }}
+
+  .copy-participantes-btn {{
+    margin-top: 10px;
+    padding: 6px 14px;
+    background: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #555;
+    cursor: pointer;
+    transition: background 0.2s;
+  }}
+  .copy-participantes-btn:hover {{ background: #e0e0e0; }}
+  .copy-participantes-btn.copied {{ background: #d4edda; color: #155724; border-color: #c3e6cb; }}
+
 </style>
 </head>
 <body>
@@ -340,6 +355,10 @@ def guardar_html(notas: dict, nombre_archivo: str, output_folder: str) -> str:
   <div class="section">
     <h2>👥 Participantes</h2>
     <div class="chips-container">{html_participantes}</div>
+    <button class="copy-participantes-btn" onclick="copiarParticipantes(this)"
+      data-participantes="{', '.join(notas.get('participantes', []))}">
+      📧 Copiar para campo TO del mail
+    </button>
   </div>
   '''}
 
@@ -398,6 +417,17 @@ function copiarContenido(btn) {{
     btn.textContent = '📋 Copiar todo para pegar en Loop';
     btn.classList.remove('copied');
   }}, 4000);
+}}
+function copiarParticipantes(btn) {{
+  const lista = btn.getAttribute('data-participantes');
+  navigator.clipboard.writeText(lista).then(() => {{
+    btn.textContent = '✅ Copiado — pega en el TO del mail';
+    btn.classList.add('copied');
+    setTimeout(() => {{
+      btn.textContent = '📧 Copiar para campo TO del mail';
+      btn.classList.remove('copied');
+    }}, 3000);
+  }});
 }}
 </script>
 </body>
