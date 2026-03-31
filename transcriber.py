@@ -158,3 +158,26 @@ def _formatear_tiempo_vtt(tiempo: str) -> str:
     except Exception:
         pass
     return tiempo.split(".")[0]
+
+def extraer_uuid_vtt(ruta_archivo: str) -> str:
+    """Extrae el UUID de sesión del archivo .vtt de Teams."""
+    import re
+    with open(ruta_archivo, "r", encoding="utf-8") as f:
+        contenido = f.read()
+    uuids = re.findall(
+        r'([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/',
+        contenido
+    )
+    return uuids[0] if uuids else None
+
+
+def duracion_minutos_vtt(ruta_archivo: str) -> float:
+    """Retorna la duración en minutos del transcript."""
+    import re
+    with open(ruta_archivo, "r", encoding="utf-8") as f:
+        contenido = f.read()
+    timestamps = re.findall(r'(\d{2}):(\d{2}):(\d{2})\.\d{3} -->', contenido)
+    if not timestamps:
+        return 0
+    h, m, s = timestamps[-1]
+    return int(h) * 60 + int(m) + int(s) / 60

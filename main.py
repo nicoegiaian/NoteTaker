@@ -59,21 +59,51 @@ DOWNLOADS_PATH  = os.getenv(
 
 def procesar_grabacion(ruta_archivo: str):
     """Pipeline: .vtt -> transcript -> notas -> HTML"""
-    nombre = Path(ruta_archivo).name
+    from transcriber import extraer_uuid_vtt, duracion_minutos_vtt
+    nombre  = Path(ruta_archivo).name
+    carpeta = Path(ruta_archivo).parent
 
-    # Verificar duplicado antes de procesar
+    # Verificar duración mínima — ignorar grabaciones fallidas
+    duracion = duracion_minutos_vtt(ruta_archivo)
+    if duracion < 2:
+        log.warning(f"Ignorando '{nombre}' — grabación muy corta ({duracion:.1f} min), probablemente fallida")
+        return
+
+    # Verificar duplicado
     if ya_procesado(nombre):
-        info = obtener_info(nombre)
+        info  = obtener_info(nombre)
         fecha = info.get("procesado_el", "fecha desconocida")
         log.warning(f"DUPLICADO: '{nombre}' ya fue procesado el {fecha}")
         archivo_duplicado(nombre, fecha)
         return
 
-    log.info(f"Procesando: {nombre}")
+    log.info(f"Procesando: {nombre} ({duracion:.1f} min)")
 
     try:
+        # Detectar si hay partes adicionales (mismo UUID, distinto archivo)
+        uuid_actual = extraer_uuid_vtt(ruta_archivo)
+        stem        = Path(ruta_archivo).stem
+        transcripts = []
+
+        # Buscar archivos con el mismo nombre base + sufijo _algo
+        archivos_relacionados = sorted(carpeta.glob(f"{stem}_*.vtt"))
+        partes_mismo_uuid = []
+        for f in archivos_relacionados:
+            if extraer_uuid_vtt(str(f)) == uuid_actual:
+                partes_mismo_uuid.append(f)
+
         log.info("   Leyendo transcript del .vtt...")
-        transcript = transcribir_audio(ruta_archivo)
+        transcripts.append(transcribir_audio(ruta_archivo))
+
+        if partes_mismo_uuid:
+            for parte in partes_mismo_uuid:
+                log.info(f"   Fusionando parte: {parte.name}")
+                transcripts.append(transcribir_audio(str(parte)))
+            transcript = "\n\n--- CONTINUACION ---\n\n".join(transcripts)
+            log.info(f"   Transcript fusionado: {len(transcripts)} partes")
+        else:
+            transcript = transcripts[0]
+
         palabras = len(transcript.split())
         log.info(f"   Transcript listo: {palabras} palabras")
 
@@ -84,22 +114,26 @@ def procesar_grabacion(ruta_archivo: str):
         log.info("   Guardando HTML...")
         ruta_output = guardar_html(notas, nombre, OUTPUT_FOLDER)
         log.info(f"   LISTO: {ruta_output}")
-        log.info(f"   Abri ese archivo, hace clic en Copiar y pega en Loop")
 
-        # Registrar como procesado exitosamente
         marcar_procesado(nombre, ruta_output)
 
-        # Notificacion de exito
-        minuta_lista(
-            notas.get("titulo", nombre),
-            notas.get("proyecto", "Sin proyecto")
-        )
+        # Crear tareas en Planner
+        acciones = notas.get("acciones", [])
+        proyecto = notas.get("proyecto", "")
+        if acciones and proyecto and proyecto != "Sin Proyecto Asignado":
+            try:
+                from planner_client import crear_tareas_en_planner
+                resultado_planner = crear_tareas_en_planner(acciones, proyecto)
+                log.info(f"   Planner: {resultado_planner}")
+            except Exception as ep:
+                log.warning(f"   Planner no disponible: {ep}")
+
+        minuta_lista(notas.get("titulo", nombre), notas.get("proyecto", "Sin proyecto"))
 
     except Exception as e:
         log.error(f"   Error procesando {nombre}: {e}")
         error_procesamiento(nombre, str(e))
         raise
-
 
 class WatcherDownloads(FileSystemEventHandler):
     """
@@ -243,6 +277,17 @@ def main():
 
     Path(OUTPUT_FOLDER).mkdir(parents=True, exist_ok=True)
 
+    # Verificar autorizacion de Microsoft para Planner
+    try:
+        from auth_microsoft import esta_autorizado, obtener_token
+        if not esta_autorizado():
+            log.info("Planner: primera vez — iniciando autorizacion de Microsoft...")
+            obtener_token()  # lanza Device Code Flow interactivo
+        else:
+            log.info("Planner: credenciales guardadas OK")
+    except Exception as e:
+        log.warning(f"Planner no disponible: {e}")
+
     log.info("=" * 55)
     log.info("  Meeting Notes Bot - Iniciado")
     log.info(f"  Escuchando Downloads:  {DOWNLOADS_PATH}")
@@ -259,7 +304,7 @@ def main():
 
     try:
         while True:
-            time.sleep(5)
+            time.sleep(60)
     except KeyboardInterrupt:
         observer.stop()
         log.info("Bot detenido.")

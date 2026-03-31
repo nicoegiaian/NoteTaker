@@ -111,7 +111,15 @@ Reglas:
 
     try:
         return json.loads(texto)
-    except Exception as e:
-        log.error(f"Error parseando JSON: {e}")
-        log.error(f"Respuesta (primeros 500 chars): {texto[:500]}")
-        raise ValueError(f"Gemini no devolvio un JSON valido: {e}")
+    except Exception:
+        # Intentar reparar JSON malformado (comillas simples, trailing commas, etc)
+        try:
+            from json_repair import repair_json
+            texto_reparado = repair_json(texto)
+            resultado = json.loads(texto_reparado)
+            log.warning("   JSON reparado automaticamente (Gemini devolvio JSON malformado)")
+            return resultado
+        except Exception as e:
+            log.error(f"Error parseando JSON: {e}")
+            log.error(f"Respuesta (primeros 500 chars): {texto[:500]}")
+            raise ValueError(f"Gemini no devolvio un JSON valido: {e}")

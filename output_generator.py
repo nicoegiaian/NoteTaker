@@ -4,6 +4,7 @@ El HTML resultante es fácil de copiar y pegar en Loop/OneNote/cualquier lado.
 """
 
 import os
+import json
 import logging
 from pathlib import Path
 from datetime import datetime
@@ -305,6 +306,26 @@ def guardar_html(notas: dict, nombre_archivo: str, output_folder: str) -> str:
   .copy-btn:hover {{ background: #1e429f; }}
   .copy-btn.copied {{ background: #16a34a; }}
 
+  .planner-btn {{
+    display: block;
+    width: 100%;
+    padding: 14px;
+    background: #0f7b0f;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 12px;
+    transition: background 0.2s;
+  }}
+
+  .planner-btn:hover {{ background: #0a5e0a; }}
+  .planner-btn.loading {{ background: #6b7280; cursor: wait; }}
+  .planner-btn.ok      {{ background: #16a34a; }}
+  .planner-btn.error   {{ background: #dc2626; }}
+
   .footer {{
     text-align: center;
     font-size: 12px;
@@ -317,21 +338,6 @@ def guardar_html(notas: dict, nombre_archivo: str, output_folder: str) -> str:
     .card {{ box-shadow: none; padding: 20px; }}
     .copy-btn {{ display: none; }}
   }}
-
-  .copy-participantes-btn {{
-    margin-top: 10px;
-    padding: 6px 14px;
-    background: #f0f0f0;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    font-size: 12px;
-    color: #555;
-    cursor: pointer;
-    transition: background 0.2s;
-  }}
-  .copy-participantes-btn:hover {{ background: #e0e0e0; }}
-  .copy-participantes-btn.copied {{ background: #d4edda; color: #155724; border-color: #c3e6cb; }}
-
 </style>
 </head>
 <body>
@@ -355,10 +361,6 @@ def guardar_html(notas: dict, nombre_archivo: str, output_folder: str) -> str:
   <div class="section">
     <h2>👥 Participantes</h2>
     <div class="chips-container">{html_participantes}</div>
-    <button class="copy-participantes-btn" onclick="copiarParticipantes(this)"
-      data-participantes="{', '.join(notas.get('participantes', []))}">
-      📧 Copiar para campo TO del mail
-    </button>
   </div>
   '''}
 
@@ -390,6 +392,12 @@ def guardar_html(notas: dict, nombre_archivo: str, output_folder: str) -> str:
     📋 Copiar todo para pegar en Loop
   </button>
 
+  <button class="planner-btn" onclick="crearTareasPlanner(this)"
+    data-acciones='{__import__("base64").b64encode(json.dumps(notas.get("acciones", []), ensure_ascii=False).encode()).decode()}'
+    data-proyecto='{notas.get("proyecto", "")}'>
+    ✅ Crear tareas en Planner
+  </button>
+
 </div>
 
 <div class="footer">
@@ -398,10 +406,9 @@ def guardar_html(notas: dict, nombre_archivo: str, output_folder: str) -> str:
 
 <script>
 function copiarContenido(btn) {{
-  // Selecciona el contenido de la card (sin el botón)
   const card = document.querySelector('.card');
-  const boton = card.querySelector('.copy-btn');
-  boton.style.display = 'none';
+  const botones = card.querySelectorAll('button');
+  botones.forEach(b => b.style.display = 'none');
 
   const range = document.createRange();
   range.selectNode(card);
@@ -410,7 +417,7 @@ function copiarContenido(btn) {{
   document.execCommand('copy');
   window.getSelection().removeAllRanges();
 
-  boton.style.display = 'block';
+  botones.forEach(b => b.style.display = 'block');
   btn.textContent = '✅ Copiado — ahora pegalo en Loop (Ctrl+V)';
   btn.classList.add('copied');
   setTimeout(() => {{
@@ -418,16 +425,45 @@ function copiarContenido(btn) {{
     btn.classList.remove('copied');
   }}, 4000);
 }}
-function copiarParticipantes(btn) {{
-  const lista = btn.getAttribute('data-participantes');
-  navigator.clipboard.writeText(lista).then(() => {{
-    btn.textContent = '✅ Copiado — pega en el TO del mail';
-    btn.classList.add('copied');
-    setTimeout(() => {{
-      btn.textContent = '📧 Copiar para campo TO del mail';
-      btn.classList.remove('copied');
-    }}, 3000);
-  }});
+
+async function crearTareasPlanner(btn) {{
+  const acciones = JSON.parse(atob(btn.getAttribute('data-acciones')));
+  const proyecto = btn.getAttribute('data-proyecto');
+
+  if (acciones.length === 0) {{
+    btn.textContent = '⚠️ No hay acciones para crear';
+    return;
+  }}
+
+  btn.textContent = '⏳ Creando tareas en Planner...';
+  btn.classList.add('loading');
+  btn.disabled = true;
+
+  try {{
+    const resp = await fetch('http://localhost:8765/crear-tareas', {{
+      method: 'POST',
+      headers: {{ 'Content-Type': 'application/json' }},
+      body: JSON.stringify({{ acciones, proyecto }})
+    }});
+
+    const data = await resp.json();
+
+    if (data.ok) {{
+      btn.textContent = '✅ ' + data.mensaje;
+      btn.classList.remove('loading');
+      btn.classList.add('ok');
+    }} else {{
+      btn.textContent = '❌ Error: ' + data.mensaje;
+      btn.classList.remove('loading');
+      btn.classList.add('error');
+      btn.disabled = false;
+    }}
+  }} catch (e) {{
+    btn.textContent = '❌ No se pudo conectar al bot local';
+    btn.classList.remove('loading');
+    btn.classList.add('error');
+    btn.disabled = false;
+  }}
 }}
 </script>
 </body>
