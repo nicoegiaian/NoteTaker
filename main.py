@@ -16,6 +16,8 @@ import logging
 from pathlib import Path
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+from datetime import datetime
+
 
 # Agregar ffmpeg al PATH
 os.environ["PATH"] += r";C:\Users\degiaian\ffmpeg\bin"
@@ -31,6 +33,9 @@ from notificaciones import (
     minuta_lista,
     error_procesamiento,
 )
+from proyecto_watcher import encolar_archivo, digest_todos_los_proyectos, digest_ya_corrido_hoy, PROYECTOS
+from f3_analisis_minuta import analizar_minuta_cruzada
+
 
 # Encoding para Windows
 if sys.stdout.encoding != "utf-8":
@@ -118,17 +123,25 @@ def procesar_grabacion(ruta_archivo: str):
         marcar_procesado(nombre, ruta_output)
 
         # Crear tareas en Planner
-        acciones = notas.get("acciones", [])
+        # F3 — Análisis cruzado antes de crear tareas en Planner
         proyecto = notas.get("proyecto", "")
+        log.info("   Iniciando análisis cruzado F3...")
+        try:
+            analizar_minuta_cruzada(notas, nombre, ruta_output, OUTPUT_FOLDER)
+        except Exception as ef3:
+            log.warning(f"   F3 no disponible: {ef3}")
+
+        # Crear tareas en Planner
+        acciones = notas.get("acciones", [])
         if acciones and proyecto and proyecto != "Sin Proyecto Asignado":
             try:
                 from planner_client import crear_tareas_en_planner
-                resultado_planner = crear_tareas_en_planner(acciones, proyecto)
+                titulo_reunion = notas.get("titulo", nombre)
+                resultado_planner = crear_tareas_en_planner(acciones, proyecto, titulo_reunion)
                 log.info(f"   Planner: {resultado_planner}")
             except Exception as ep:
                 log.warning(f"   Planner no disponible: {ep}")
 
-        minuta_lista(notas.get("titulo", nombre), notas.get("proyecto", "Sin proyecto"))
 
     except Exception as e:
         log.error(f"   Error procesando {nombre}: {e}")
@@ -259,6 +272,56 @@ class WatcherRecordings(FileSystemEventHandler):
         t = threading.Thread(target=_chequear_despues, daemon=True)
         t.start()
 
+class WatcherProyectos(FileSystemEventHandler):
+    """
+    Monitorea las carpetas de proyectos en SharePoint local.
+    Detecta archivos nuevos o modificados y los procesa con F1b.
+    """
+
+    EXTENSIONES = {".docx", ".pdf", ".xlsx", ".xls"}
+    ESPERA_SEG  = 10
+
+    def __init__(self):
+        self.en_proceso = set()
+        self.ultimo_procesado = {}
+
+    def _procesar(self, ruta: str, evento: str):
+        if ruta in self.en_proceso:
+            return
+        if Path(ruta).suffix.lower() not in self.EXTENSIONES:
+            return
+        if Path(ruta).name.startswith("~$"):
+            return
+
+        ahora = time.time()
+        ultimo = self.ultimo_procesado.get(ruta, 0)
+        if ahora - ultimo < 60:
+            log.info(f"[WatcherProyectos] Ignorando evento duplicado: {Path(ruta).name}")
+            return
+
+        self.en_proceso.add(ruta)
+        self.ultimo_procesado[ruta] = ahora
+        time.sleep(self.ESPERA_SEG)
+
+        if not os.path.exists(ruta) or os.path.getsize(ruta) < 100:
+            self.en_proceso.discard(ruta)
+            return
+
+        try:
+            encolar_archivo(ruta, evento)
+        except Exception as e:
+            log.error(f"[WatcherProyectos] Error: {e}")
+
+        self.en_proceso.discard(ruta)
+
+    def on_created(self, event):
+        if not event.is_directory:
+            self._procesar(event.src_path, "subió")
+
+    def on_modified(self, event):
+        if not event.is_directory:
+            self._procesar(event.src_path, "modificó")
+
 
 def main():
     if not RECORDINGS_PATH or not os.path.exists(RECORDINGS_PATH):
@@ -302,6 +365,30 @@ def main():
     observer.schedule(WatcherRecordings(), RECORDINGS_PATH, recursive=True)
     observer.start()
 
+    # Hilo del digest diario
+    import threading
+
+    def _hilo_digest():
+        import time as _time
+        # Al arrancar: correr si ya son las 9am y no corrió hoy
+        if datetime.now().hour >= 9 and not digest_ya_corrido_hoy():
+            log.info("Digest pendiente al arrancar, ejecutando...")
+            digest_todos_los_proyectos()
+        # Chequear cada hora
+        while True:
+            _time.sleep(3600)
+            if datetime.now().hour >= 9 and not digest_ya_corrido_hoy():
+                digest_todos_los_proyectos()
+
+    hilo = threading.Thread(target=_hilo_digest, daemon=True)
+    hilo.start()
+
+    for carpeta_proyecto in PROYECTOS.keys():
+        if os.path.exists(carpeta_proyecto):
+            observer.schedule(WatcherProyectos(), carpeta_proyecto, recursive=True)
+            log.info(f"  Monitoreando proyecto: {PROYECTOS[carpeta_proyecto]}")
+        else:
+            log.warning(f"  Carpeta no encontrada: {carpeta_proyecto}")
     try:
         while True:
             time.sleep(60)

@@ -1,6 +1,6 @@
 """
-ai_processor.py — Gemini via REST API directa
-Usa response_mime_type: application/json para evitar JSON malformado.
+ai_processor.py — Claude API (reemplaza Gemini)
+Genera notas estructuradas de reuniones en formato JSON.
 """
 
 import os
@@ -14,10 +14,7 @@ from config import PROYECTOS, PROYECTO_DESCONOCIDO
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 log = logging.getLogger(__name__)
 
-GEMINI_URL = (
-    "https://generativelanguage.googleapis.com/v1beta/models/"
-    "gemini-2.5-flash:generateContent"
-)
+CLAUDE_URL = "https://api.anthropic.com/v1/messages"
 
 
 def detectar_proyecto(nombre_archivo: str) -> str:
@@ -32,12 +29,12 @@ def detectar_proyecto(nombre_archivo: str) -> str:
 
 def generar_notas(transcript: str, nombre_archivo: str) -> dict:
     proyecto = detectar_proyecto(nombre_archivo)
-    api_key  = os.getenv("GEMINI_API_KEY")
+    api_key  = os.getenv("ANTHROPIC_API_KEY")
 
     if not api_key:
-        raise ValueError("No se encontro GEMINI_API_KEY en el archivo .env")
+        raise ValueError("No se encontro ANTHROPIC_API_KEY en el archivo .env")
 
-    MAX_CHARS = 200_000
+    MAX_CHARS = 180_000
     if len(transcript) > MAX_CHARS:
         log.warning(f"   Transcript muy largo, truncando a {MAX_CHARS} chars...")
         transcript = transcript[:MAX_CHARS] + "\n\n[... truncado ...]"
@@ -68,58 +65,59 @@ Reglas:
 - Usa los nombres reales del transcript para responsables y participantes
 - Si alguien dice "yo me encargo" identifica quien es por contexto
 - Solo incluye informacion que este en el transcript, no inventes datos
-- Si no hay acciones, dependencias o temas pendientes, usa listas vacias"""
+- Si no hay acciones, dependencias o temas pendientes, usa listas vacias
+- Responde SOLO con el JSON, sin texto adicional, sin bloques de codigo markdown"""
+
+    headers = {
+        "x-api-key": api_key,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+    }
 
     payload = {
-        "contents": [
-            {"parts": [{"text": prompt}]}
+        "model": "claude-haiku-4-5-20251001",
+        "max_tokens": 4096,
+        "messages": [
+            {"role": "user", "content": prompt}
         ],
-        "generationConfig": {
-            "temperature": 0.2,
-            "maxOutputTokens": 8192,
-            "response_mime_type": "application/json",
-        }
     }
 
     respuesta = requests.post(
-        GEMINI_URL,
-        params={"key": api_key},
+        CLAUDE_URL,
+        headers=headers,
         json=payload,
         verify=False,
         timeout=120,
     )
 
     if respuesta.status_code != 200:
-        raise ValueError(f"Error de Gemini API: {respuesta.status_code} — {respuesta.text[:300]}")
+        raise ValueError(f"Error de Claude API: {respuesta.status_code} — {respuesta.text[:300]}")
 
     respuesta_json = respuesta.json()
 
-    uso = respuesta_json.get("usageMetadata", {})
-    log.info(f"   Tokens usados - entrada: {uso.get('promptTokenCount', '?')}, "
-             f"salida: {uso.get('candidatesTokenCount', '?')}, "
-             f"total: {uso.get('totalTokenCount', '?')}")
+    uso = respuesta_json.get("usage", {})
+    log.info(f"   Tokens usados - entrada: {uso.get('input_tokens', '?')}, "
+             f"salida: {uso.get('output_tokens', '?')}")
 
     try:
-        texto = respuesta_json["candidates"][0]["content"]["parts"][0]["text"].strip()
+        texto = respuesta_json["content"][0]["text"].strip()
     except (KeyError, IndexError) as e:
-        raise ValueError(f"Respuesta inesperada de Gemini: {respuesta_json}") from e
+        raise ValueError(f"Respuesta inesperada de Claude: {respuesta_json}") from e
 
-    # Con response_mime_type: application/json Gemini devuelve JSON puro
-    # pero limpiamos backticks por si acaso
+    # Limpiar backticks por si acaso
     texto = re.sub(r'^```(?:json)?\n?', '', texto)
     texto = re.sub(r'\n?```$', '', texto)
 
     try:
         return json.loads(texto)
     except Exception:
-        # Intentar reparar JSON malformado (comillas simples, trailing commas, etc)
         try:
             from json_repair import repair_json
             texto_reparado = repair_json(texto)
             resultado = json.loads(texto_reparado)
-            log.warning("   JSON reparado automaticamente (Gemini devolvio JSON malformado)")
+            log.warning("   JSON reparado automaticamente")
             return resultado
         except Exception as e:
             log.error(f"Error parseando JSON: {e}")
             log.error(f"Respuesta (primeros 500 chars): {texto[:500]}")
-            raise ValueError(f"Gemini no devolvio un JSON valido: {e}")
+            raise ValueError(f"Claude no devolvio un JSON valido: {e}")

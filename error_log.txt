@@ -1,0 +1,8 @@
+12:51:27  INFO  =======================================================
+12:51:27  INFO    Meeting Notes Bot - Iniciado
+12:51:27  INFO    Escuchando Downloads:  C:\Users\degiaian\Downloads
+12:51:27  INFO    Procesando en:         C:\Users\degiaian\OneDrive - ASE Conecta\Recordings
+12:51:27  INFO    Notas HTML en:         C:\Users\degiaian\OneDrive - ASE Conecta\Recordings\Minutas
+12:51:27  INFO    Flujo: descargar .vtt de Teams -> se mueve solo -> notas listas
+12:51:27  INFO    Para detener: Ctrl + C
+12:51:27  INFO  =======================================================
