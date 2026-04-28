@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 PROYECTOS = {
     r"C:\Users\degiaian\OneDrive - ASE Conecta\CORPO - Gerencia de Proyectos Corporativos - Proyectos en curso\DevSecOps": "DevSecOps",
     r"C:\Users\degiaian\OneDrive - ASE Conecta\CORPO - Gerencia de Proyectos Corporativos - Proyectos en curso\Monitoreo": "Monitoreo",
-    r"C:\Users\degiaian\OneDrive - ASE Conecta\CORPO - Gerencia de Proyectos Corporativos - Proyectos en curso\Salesforce HealthCloud": "Salesforce HealthCloud",
+    r"C:\Users\degiaian\OneDrive - ASE Conecta\CORPO - Gerencia de Proyectos Corporativos - Proyectos en curso\Salesforce HealthCloud": "Programa Salesforce",
     r"C:\Users\degiaian\OneDrive - ASE Conecta\CORPO - Seguridad-SI e INFRA - Obsolescencia": "Obsolescencia",
 }
 
@@ -98,21 +98,53 @@ def guardar_digest_log(log_data: dict):
     )
 
 
-def marcar_digest_ejecutado():
+def proyectos_procesados_hoy() -> set:
+    """Retorna el set de proyectos ya procesados hoy."""
     log_data = cargar_digest_log()
+    ultima = log_data.get("fecha", "")
+    try:
+        if datetime.fromisoformat(ultima).date() == date.today():
+            return set(log_data.get("proyectos_ok", []))
+    except Exception:
+        pass
+    return set()
+
+def proyectos_procesados_hoy() -> set:
+    """Retorna el set de proyectos ya procesados hoy."""
+    log_data = cargar_digest_log()
+    ultima = log_data.get("fecha", "")
+    try:
+        if datetime.fromisoformat(ultima).date() == date.today():
+            return set(log_data.get("proyectos_ok", []))
+    except Exception:
+        pass
+    return set()
+
+
+def marcar_proyecto_procesado(proyecto: str):
+    """Marca un proyecto como procesado exitosamente hoy."""
+    log_data = cargar_digest_log()
+    fecha_actual = date.today().isoformat()
+
+    # Si cambió el día, resetear
+    try:
+        if log_data.get("fecha", "") != fecha_actual:
+            log_data = {"fecha": fecha_actual, "proyectos_ok": []}
+    except Exception:
+        log_data = {"fecha": fecha_actual, "proyectos_ok": []}
+
+    if proyecto not in log_data.get("proyectos_ok", []):
+        log_data.setdefault("proyectos_ok", []).append(proyecto)
+
     log_data["ultima_ejecucion"] = datetime.now().isoformat()
     guardar_digest_log(log_data)
 
+
 def digest_ya_corrido_hoy() -> bool:
-    log_data = cargar_digest_log()
-    ultima = log_data.get("ultima_ejecucion", "")
-    if not ultima:
-        return False
-    try:
-        ultima_dt = datetime.fromisoformat(ultima)
-        return ultima_dt.date() == date.today()
-    except Exception:
-        return False
+    """El digest está completo si todos los proyectos fueron procesados hoy."""
+    procesados = proyectos_procesados_hoy()
+    todos = set(PROYECTOS.values())
+    return todos.issubset(procesados)
 
 
 # ─── LECTURA DE ARCHIVOS ──────────────────────────────────
@@ -177,10 +209,98 @@ def cargar_contexto(proyecto: str) -> str:
     return "Sin contexto previo disponible."
 
 
-def guardar_contexto(proyecto: str, nuevo_contexto: str):
+def guardar_contexto(proyecto: str, contenido_agente: str):
+    """
+    Actualiza solo las secciones del agente en el contexto del proyecto.
+    Nunca toca las secciones escritas por el PM:
+    DESCRIPCIÓN Y ALCANCE, EQUIPO CLAVE, HITOS VIGENTES, RIESGOS IDENTIFICADOS.
+    """
     ruta = Path(CONTEXTO_FOLDER) / f"contexto_{proyecto}.txt"
-    ruta.write_text(nuevo_contexto, encoding="utf-8")
-    log.info(f"Contexto actualizado: {ruta.name}")
+    
+    # Secciones protegidas — escritas por el PM
+    SECCIONES_PROTEGIDAS = [
+        "=== DESCRIPCIÓN Y ALCANCE ===",
+        "=== EQUIPO CLAVE ===",
+        "=== HITOS VIGENTES ===",
+        "=== RIESGOS IDENTIFICADOS ===",
+    ]
+    
+    # Secciones del agente — se actualizan automáticamente
+    SECCIONES_AGENTE = [
+        "=== ESTADO ACTUAL ===",
+        "=== DECISIONES TOMADAS ===",
+    ]
+
+    if ruta.exists():
+        contenido_actual = ruta.read_text(encoding="utf-8")
+    else:
+        contenido_actual = ""
+
+    # Verificar si el archivo tiene la estructura esperada
+    tiene_estructura = any(s in contenido_actual for s in SECCIONES_PROTEGIDAS)
+
+    if not tiene_estructura:
+        # Archivo sin estructura → escribir todo (comportamiento anterior)
+        ruta.write_text(contenido_agente, encoding="utf-8")
+        log.info(f"Contexto creado: {ruta.name}")
+        return
+
+    # Extraer la parte protegida (todo hasta la primera sección del agente)
+    primera_seccion_agente = None
+    pos_corte = len(contenido_actual)
+    for seccion in SECCIONES_AGENTE:
+        pos = contenido_actual.find(seccion)
+        if pos != -1 and pos < pos_corte:
+            pos_corte = pos
+            primera_seccion_agente = seccion
+
+    parte_protegida = contenido_actual[:pos_corte].rstrip()
+
+    # Parsear el contenido nuevo del agente para extraer estado y decisiones
+    estado_nuevo = ""
+    decisiones_nuevas = ""
+
+    if "=== ESTADO ACTUAL ===" in contenido_agente:
+        partes = contenido_agente.split("=== ESTADO ACTUAL ===")
+        if len(partes) > 1:
+            resto = partes[1]
+            if "=== DECISIONES TOMADAS ===" in resto:
+                estado_nuevo = resto.split("=== DECISIONES TOMADAS ===")[0].strip()
+            else:
+                estado_nuevo = resto.strip()
+
+    if "=== DECISIONES TOMADAS ===" in contenido_agente:
+        partes = contenido_agente.split("=== DECISIONES TOMADAS ===")
+        if len(partes) > 1:
+            decisiones_nuevas = partes[1].strip()
+
+    # Si el agente no devolvió secciones estructuradas, preservar las existentes
+    if not estado_nuevo:
+        if "=== ESTADO ACTUAL ===" in contenido_actual:
+            partes = contenido_actual.split("=== ESTADO ACTUAL ===")
+            resto = partes[1] if len(partes) > 1 else ""
+            if "=== DECISIONES TOMADAS ===" in resto:
+                estado_nuevo = resto.split("=== DECISIONES TOMADAS ===")[0].strip()
+            else:
+                estado_nuevo = resto.strip()
+
+    if not decisiones_nuevas:
+        if "=== DECISIONES TOMADAS ===" in contenido_actual:
+            partes = contenido_actual.split("=== DECISIONES TOMADAS ===")
+            decisiones_nuevas = partes[1].strip() if len(partes) > 1 else ""
+
+    # Reconstruir el archivo completo
+    nuevo_contenido = f"""{parte_protegida}
+
+=== ESTADO ACTUAL ===
+{estado_nuevo}
+
+=== DECISIONES TOMADAS ===
+{decisiones_nuevas}
+"""
+    ruta.write_text(nuevo_contenido, encoding="utf-8")
+    log.info(f"Contexto actualizado (secciones protegidas intactas): {ruta.name}")
+
 
 
 # ─── CLAUDE API ───────────────────────────────────────────
@@ -277,33 +397,16 @@ def digest_proyecto(proyecto: str, items: list):
     contexto_actual = cargar_contexto(proyecto)
     contenido_archivos = "\n\n".join(contenidos)
 
-    prompt = f"""Sos un asistente experto en gestión de proyectos. A continuación te comparto los archivos que fueron creados o modificados ayer en el proyecto "{proyecto}".
+    prompt_path = Path(CONTEXTO_FOLDER) / "Prompts" / "prompt_digest_archivos.txt"
+    try:
+        prompt_template = prompt_path.read_text(encoding="utf-8")
+    except Exception as e:
+        log.error(f"No se pudo leer prompt: {e}")
+        return
 
-CONTEXTO ACTUAL DEL PROYECTO:
-{contexto_actual}
-
-ARCHIVOS DEL DÍA:
-{contenido_archivos}
-
-Analizá todos los archivos en conjunto y respondé en español con este formato exacto:
-
-📅 DIGEST DE ARCHIVOS — {proyecto}
-📁 Archivos procesados: {len(contenidos)}
-
-📋 RESUMEN DEL DÍA:
-[Resumen consolidado de todos los cambios y novedades, relacionando archivos si corresponde]
-
-🔄 IMPACTO EN EL PROYECTO:
-[Qué cambia o se agrega al proyecto con estos documentos]
-
-⚠️ ALERTAS:
-[Temas fuera de alcance, riesgos nuevos, cambios importantes. Si no hay: 'Sin alertas.']
-
-✅ TAREAS SUGERIDAS:
-[Lista numerada de acciones concretas sugeridas. Si no aplica: 'Sin tareas sugeridas.']
-
-📌 CONTEXTO ACTUALIZADO DEL PROYECTO:
-[Si los archivos representan cambios significativos al contexto, reescribilo incorporando la nueva información. Si no hay cambios importantes, escribí exactamente: SIN_CAMBIOS]"""
+    prompt = prompt_template.replace("{{PROYECTO}}", proyecto)
+    prompt = prompt.replace("{{CONTEXTO}}", contexto_actual)
+    prompt = prompt.replace("{{ARCHIVOS}}", contenido_archivos)
 
     resultado = llamar_claude(prompt)
     texto_completo = resultado["texto"]
@@ -324,17 +427,22 @@ Analizá todos los archivos en conjunto y respondé en español con este formato
 
 
 def digest_todos_los_proyectos():
-    """Corre el digest para todos los proyectos procesando todo lo acumulado hasta ayer."""
+    """Corre el digest solo para proyectos pendientes."""
     if digest_ya_corrido_hoy():
-        log.info("[Digest] Ya se corrió hoy, saltando.")
+        log.info("[Digest] Ya se corrió hoy para todos los proyectos, saltando.")
         return
 
     log.info("[Digest] Iniciando digest diario de archivos...")
     cola = cargar_cola()
+    ya_procesados = proyectos_procesados_hoy()
 
     hoy_inicio = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
 
     for proyecto in PROYECTOS.values():
+        if proyecto in ya_procesados:
+            log.info(f"[Digest] {proyecto} ya procesado hoy, saltando.")
+            continue
+
         items_a_procesar = []
         items_restantes = []
 
@@ -348,13 +456,14 @@ def digest_todos_los_proyectos():
             except Exception:
                 items_restantes.append(item)
 
-        cola[proyecto] = items_restantes
-
         try:
             digest_proyecto(proyecto, items_a_procesar)
+            # Solo limpiar la cola y marcar si fue exitoso
+            cola[proyecto] = items_restantes
+            marcar_proyecto_procesado(proyecto)
         except Exception as e:
             log.error(f"[Digest] Error en {proyecto}: {e}")
+            # No limpia cola ni marca, se reintenta en la próxima hora
 
     guardar_cola(cola)
-    marcar_digest_ejecutado()
     log.info("[Digest] Digest diario completado.")

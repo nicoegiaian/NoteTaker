@@ -54,5 +54,6 @@ PLANNER_PLANES = {
     "DevSecOps": "QNz1pTxlGkWflbBOgjeZbmQADnjD",
     "Programa Salesforce": "lmWVA6a6uEWMb6ks2z4Z0mQABVNT",
     "Monitoreo": "75EuHZ6p50iXx0jiDdU-cWQACWAY",
-    "Obsolescencia": "nEj_feGLd0GvDeVGf4ZcDGQAAv-W"
+    "Obsolescencia": "nEj_feGLd0GvDeVGf4ZcDGQAAv-W",
+    "WURU Finochietto": "AZ-lGAVN9kO0vDbGOe0WtWQAClXH"
 }

@@ -161,44 +161,19 @@ def analizar_minuta_cruzada(notas: dict, nombre_archivo: str, ruta_html: str, ou
     else:
         texto_tareas = "Sin tareas abiertas en Planner."
 
-    prompt = f"""Sos un asistente experto en gestión de proyectos. Acabás de procesar una nueva minuta del proyecto "{proyecto}".
+    # Leer prompt desde archivo
+    prompt_path = Path(CONTEXTO_FOLDER) / "Prompts" / "prompt_f3_analisis.txt"
+    try:
+        prompt_template = prompt_path.read_text(encoding="utf-8")
+    except Exception as e:
+        log.error(f"No se pudo leer prompt: {e}")
+        return None
 
-Tu tarea es hacer un análisis cruzado inteligente entre la minuta nueva, el historial de minutas anteriores, las tareas abiertas en Planner y el contexto del proyecto.
-
-CONTEXTO DEL PROYECTO:
-{contexto}
-
-MINUTA NUEVA:
-{minuta_actual}
-
-MINUTAS ANTERIORES (últimas {len(minutas_anteriores)}):
-{texto_minutas}
-
-TAREAS ABIERTAS EN PLANNER:
-{texto_tareas}
-
-Analizá todo en conjunto y respondé en español con este formato exacto:
-
-🧠 ANÁLISIS CRUZADO — {proyecto}
-📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}
-
-📋 RESUMEN DE LA REUNIÓN:
-[2-3 oraciones sobre los temas principales]
-
-🔄 TEMAS RECURRENTES:
-[Temas que aparecen en minutas anteriores sin resolución. Si no hay: 'Sin temas recurrentes detectados.']
-
-✅ TAREAS QUE PODRÍAN CERRARSE:
-[Tareas de Planner que según la minuta podrían marcarse como completadas. Si no hay: 'Sin tareas para cerrar.']
-
-⚠️ ALERTAS:
-[Cambios de alcance, riesgos nuevos, compromisos sin responsable. Si no hay: 'Sin alertas.']
-
-💡 SUGERENCIAS:
-[Acciones concretas sugeridas: reuniones a agendar, documentos a actualizar, riesgos a registrar, etc.]
-
-📌 CONTEXTO ACTUALIZADO DEL PROYECTO:
-[Si la minuta aporta información significativa al contexto del proyecto, reescribilo incorporando las novedades. Si no hay cambios importantes, escribí exactamente: SIN_CAMBIOS]"""
+    prompt = prompt_template.replace("{{PROYECTO}}", proyecto)
+    prompt = prompt.replace("{{CONTEXTO}}", contexto)
+    prompt = prompt.replace("{{MINUTA}}", minuta_actual)
+    prompt = prompt.replace("{{MINUTAS_ANTERIORES}}", texto_minutas)
+    prompt = prompt.replace("{{TAREAS_PLANNER}}", texto_tareas)
 
     resultado = llamar_claude(prompt)
     texto_completo = resultado["texto"]

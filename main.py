@@ -25,6 +25,7 @@ os.environ["PATH"] += r";C:\Users\degiaian\ffmpeg\bin"
 from config import ESPERA_SINCRONIZACION_SEG
 from transcriber import transcribir_audio
 from ai_processor import generar_notas
+from gemini_processor import es_minuta_gemini, procesar_minuta_gemini
 from output_generator import guardar_html
 from registro import ya_procesado, marcar_procesado, obtener_info
 from notificaciones import (
@@ -218,11 +219,14 @@ class WatcherRecordings(FileSystemEventHandler):
 
         ruta = event.src_path
         ext  = Path(ruta).suffix.lower()
+        nombre = Path(ruta).name
 
         if ext == ".vtt":
             self._procesar_vtt(ruta)
         elif ext == ".mp4":
             self._avisar_mp4(ruta)
+        elif ext == ".docx" and es_minuta_gemini(nombre):
+            self._procesar_docx_gemini(ruta)
 
     def _procesar_vtt(self, ruta: str):
         if ruta in self.en_proceso:
@@ -271,6 +275,57 @@ class WatcherRecordings(FileSystemEventHandler):
         # Correr en thread separado para no bloquear el watcher
         t = threading.Thread(target=_chequear_despues, daemon=True)
         t.start()
+
+    def _procesar_docx_gemini(self, ruta: str):
+        if ruta in self.en_proceso:
+            return
+
+        self.en_proceso.add(ruta)
+        nombre = Path(ruta).name
+        log.info(f"[Recordings] .docx Gemini detectado: {nombre}")
+        time.sleep(5)
+
+        if not os.path.exists(ruta) or os.path.getsize(ruta) < 100:
+            log.warning("   Archivo no disponible, ignorando.")
+            self.en_proceso.discard(ruta)
+            return
+
+        try:
+            notas = procesar_minuta_gemini(ruta)
+            if not notas:
+                self.en_proceso.discard(ruta)
+                return
+
+            # Mismo pipeline que el .vtt desde guardar_html en adelante
+            ruta_output = guardar_html(notas, nombre, OUTPUT_FOLDER)
+            log.info(f"   HTML generado: {ruta_output}")
+
+            marcar_procesado(nombre, ruta_output)
+    
+            # F3 análisis cruzado
+            log.info("   Iniciando análisis cruzado F3...")
+            try:
+                from f3_analisis_minuta import analizar_minuta_cruzada
+                analizar_minuta_cruzada(notas, nombre, ruta_output, OUTPUT_FOLDER)
+            except Exception as ef3:
+                log.warning(f"   F3 no disponible: {ef3}")
+
+            # Crear tareas en Planner
+            acciones = notas.get("acciones", [])
+            proyecto = notas.get("proyecto", "")
+            if acciones and proyecto and proyecto != "Sin Proyecto Asignado":
+                try:
+                    from planner_client import crear_tareas_en_planner
+                    titulo_reunion = notas.get("titulo", nombre)
+                    resultado_planner = crear_tareas_en_planner(acciones, proyecto, titulo_reunion)
+                    log.info(f"   Planner: {resultado_planner}")
+                except Exception as ep:
+                    log.warning(f"   Planner no disponible: {ep}")
+
+        except Exception as e:
+            log.error(f"   Error procesando {nombre}: {e}")
+        finally:
+            self.en_proceso.discard(ruta)
 
 class WatcherProyectos(FileSystemEventHandler):
     """
