@@ -420,8 +420,22 @@ def main():
     observer.schedule(WatcherRecordings(), RECORDINGS_PATH, recursive=True)
     observer.start()
 
-    # Hilo del digest diario
     import threading
+
+    # ── Hilo del agente de chat ──────────────────────────────────────────────
+    def _hilo_chat():
+        try:
+            from agente_chat import iniciar_server
+            iniciar_server()  # bloquea en su propio thread, daemon=True
+        except Exception as e:
+            log.error(f"Agente de chat no pudo iniciarse: {e}")
+ 
+    hilo_chat = threading.Thread(target=_hilo_chat, daemon=True)
+    hilo_chat.start()
+    log.info("  Agente de chat: http://localhost:8765")
+    # ────────────────────────────────────────────────────────────────────────
+
+    # ── Hilo del digest diario  ──────────────────────────────────────────────
 
     def _hilo_digest():
         import time as _time
