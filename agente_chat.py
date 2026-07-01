@@ -877,10 +877,48 @@ class ChatHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._json(500, {"ok": False, "mensaje": str(e)})
 
+        elif self.path == "/reprocesar":
+            nombre_archivo = body.get("nombre_archivo", "").strip()
+            tipo_forzado   = body.get("tipo_forzado", "").strip()
+
+            if not nombre_archivo or not tipo_forzado:
+                self._json(400, {"ok": False, "mensaje": "Faltan nombre_archivo o tipo_forzado"})
+                return
+
+            try:
+                import subprocess
+                from pathlib import Path
+                from transcriber import transcribir_audio
+                from ai_processor import generar_notas
+                from output_generator import guardar_html
+
+                recordings    = os.getenv("ONEDRIVE_RECORDINGS_PATH", "")
+                output_folder = os.getenv("OUTPUT_FOLDER", "")
+                ruta_vtt      = Path(recordings) / nombre_archivo
+
+                if not ruta_vtt.exists():
+                    self._json(404, {"ok": False, "mensaje": f"No se encontro: {nombre_archivo}"})
+                    return
+
+                log.info(f"[Reprocesar] {nombre_archivo} -> tipo forzado: {tipo_forzado}")
+                transcript = transcribir_audio(str(ruta_vtt))
+                notas      = generar_notas(transcript, nombre_archivo, tipo_forzado=tipo_forzado)
+                ruta_html  = guardar_html(notas, nombre_archivo, output_folder)
+
+                try:
+                    subprocess.Popen(["cmd", "/c", "start", "", str(ruta_html)], shell=False)
+                except Exception:
+                    pass
+
+                self._json(200, {"ok": True, "mensaje": f"Nueva minuta generada: {Path(ruta_html).name}"})
+
+            except Exception as e:
+                log.error(f"[Reprocesar] Error: {e}")
+                self._json(500, {"ok": False, "mensaje": str(e)})
+
         else:
             self.send_response(404)
             self.end_headers()
-
     def do_OPTIONS(self):
         self.send_response(200)
         self._cors_headers()

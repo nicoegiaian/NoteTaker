@@ -1,0 +1,7 @@
+.env
+ms_token.json
+registro_procesados.json
+venv/
+__pycache__/
+.claude/
+meeting_notes.log

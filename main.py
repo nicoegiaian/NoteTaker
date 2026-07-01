@@ -63,7 +63,7 @@ DOWNLOADS_PATH  = os.getenv(
 )
 
 
-def procesar_grabacion(ruta_archivo: str):
+def procesar_grabacion(ruta_archivo: str, tipo_forzado: str = None):
     """Pipeline: .vtt -> transcript -> notas -> HTML"""
     from transcriber import extraer_uuid_vtt, duracion_minutos_vtt
     nombre  = Path(ruta_archivo).name
@@ -76,7 +76,7 @@ def procesar_grabacion(ruta_archivo: str):
         return
 
     # Verificar duplicado
-    if ya_procesado(nombre):
+    if not tipo_forzado and ya_procesado(nombre):
         info  = obtener_info(nombre)
         fecha = info.get("procesado_el", "fecha desconocida")
         log.warning(f"DUPLICADO: '{nombre}' ya fue procesado el {fecha}")
@@ -114,7 +114,7 @@ def procesar_grabacion(ruta_archivo: str):
         log.info(f"   Transcript listo: {palabras} palabras")
 
         log.info("   Generando notas con IA...")
-        notas = generar_notas(transcript, nombre)
+        notas = generar_notas(transcript, nombre, tipo_forzado=tipo_forzado)
         log.info("   Notas generadas")
 
         log.info("   Guardando HTML...")
