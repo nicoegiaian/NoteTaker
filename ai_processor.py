@@ -6,15 +6,20 @@ Genera notas estructuradas de reuniones en formato JSON.
 import os
 import re
 import json
+import time
 import logging
 import requests
 import urllib3
+from pathlib import Path
 from config import PROYECTOS, PROYECTO_DESCONOCIDO
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 log = logging.getLogger(__name__)
 
 CLAUDE_URL = "https://api.anthropic.com/v1/messages"
+
+# Códigos HTTP transitorios que ameritan reintento
+_RETRY_CODES = {429, 529}
 
 
 def detectar_proyecto(nombre_archivo: str) -> str:
@@ -27,7 +32,64 @@ def detectar_proyecto(nombre_archivo: str) -> str:
     return PROYECTO_DESCONOCIDO
 
 
-def generar_notas(transcript: str, nombre_archivo: str) -> dict:
+def _leer_prompt_notas() -> str:
+    """Lee el prompt de clasificación y generación de notas desde el archivo externo."""
+    from proyecto_watcher import CONTEXTO_FOLDER
+    ruta = Path(CONTEXTO_FOLDER) / "Prompts" / "prompt_notas_reunion.txt"
+    try:
+        return ruta.read_text(encoding="utf-8")
+    except Exception as e:
+        raise ValueError(f"No se pudo leer el prompt de notas ({ruta}): {e}")
+
+
+def _llamar_claude_con_retry(
+    url: str,
+    headers: dict,
+    payload: dict,
+    max_intentos: int = 4,
+    backoff_base: float = 5.0,
+) -> requests.Response:
+    """
+    POST a Claude API con reintentos exponenciales para errores transitorios.
+
+    Esperas entre reintentos: 5s → 10s → 20s (backoff x2).
+    Errores no transitorios (4xx/5xx reales) fallan de inmediato sin reintentar.
+
+    Args:
+        url: Endpoint de la API.
+        headers: Headers HTTP del request.
+        payload: Body JSON del request.
+        max_intentos: Número máximo de intentos (default 4 = hasta 3 reintentos).
+        backoff_base: Segundos base para el backoff exponencial (default 5s).
+
+    Returns:
+        requests.Response con status 200.
+
+    Raises:
+        ValueError: Si se agotan los intentos o el error no es reintentable.
+    """
+    for intento in range(1, max_intentos + 1):
+        respuesta = requests.post(url, headers=headers, json=payload, verify=False, timeout=120)
+
+        if respuesta.status_code == 200:
+            return respuesta
+
+        if respuesta.status_code in _RETRY_CODES and intento < max_intentos:
+            espera = backoff_base * (2 ** (intento - 1))
+            log.warning(
+                f"   Claude API sobrecargada (HTTP {respuesta.status_code}), "
+                f"reintento {intento}/{max_intentos - 1} en {espera:.0f}s..."
+            )
+            time.sleep(espera)
+            continue
+
+        # Error no reintentable o intentos agotados
+        raise ValueError(f"Error de Claude API: {respuesta.status_code} — {respuesta.text[:300]}")
+
+    raise ValueError("Se agotaron los reintentos a Claude API")
+
+
+def generar_notas(transcript: str, nombre_archivo: str, tipo_forzado: str = None) -> dict:
     proyecto = detectar_proyecto(nombre_archivo)
     api_key  = os.getenv("ANTHROPIC_API_KEY")
 
@@ -39,34 +101,22 @@ def generar_notas(transcript: str, nombre_archivo: str) -> dict:
         log.warning(f"   Transcript muy largo, truncando a {MAX_CHARS} chars...")
         transcript = transcript[:MAX_CHARS] + "\n\n[... truncado ...]"
 
-    prompt = f"""Sos un asistente experto en gestion de proyectos. Analiza el siguiente transcript de una reunion de Microsoft Teams.
+    prompt_template = _leer_prompt_notas()
 
-Los nombres de los participantes son reales (vienen del sistema oficial de Teams).
-Formato del transcript: "Nombre Apellido: texto que dijo"
+    # Si el usuario forzó un tipo, se lo indicamos a Claude y saltamos la clasificación
+    if tipo_forzado:
+        tipo_override = f"TIPO DE REUNIÓN DEFINIDO POR EL USUARIO: {tipo_forzado}. No clasifiques, usá este tipo directamente."
+        instruccion_tipo = f"El tipo ya fue definido: {tipo_forzado}. Pasá directamente al Paso 2."
+        log.info(f"   Tipo de reunión forzado: {tipo_forzado}")
+    else:
+        tipo_override = ""
+        instruccion_tipo = "Analizá el transcript y elegí el tipo que mejor represente el espíritu de la reunión."
 
-REUNION: {nombre_archivo}
-PROYECTO: {proyecto}
-
-TRANSCRIPT:
-{transcript}
-
----
-Genera un JSON con exactamente estas claves:
-- titulo: string con titulo descriptivo de la reunion
-- proyecto: string con el nombre del proyecto ("{proyecto}")
-- resumen: string con 3-5 oraciones sobre contexto, objetivo y conclusiones. En español, tercera persona.
-- acciones: lista de objetos con claves "descripcion", "responsable", "fecha_limite"
-- dependencias: lista de objetos con claves "descripcion", "depende_de"
-- proximos_pasos: lista de strings
-- participantes: lista de strings con nombres completos
-- temas_pendientes: lista de strings
-
-Reglas:
-- Usa los nombres reales del transcript para responsables y participantes
-- Si alguien dice "yo me encargo" identifica quien es por contexto
-- Solo incluye informacion que este en el transcript, no inventes datos
-- Si no hay acciones, dependencias o temas pendientes, usa listas vacias
-- Responde SOLO con el JSON, sin texto adicional, sin bloques de codigo markdown"""
+    prompt = prompt_template.replace("{{NOMBRE_ARCHIVO}}", nombre_archivo)
+    prompt = prompt.replace("{{PROYECTO}}", proyecto)
+    prompt = prompt.replace("{{TRANSCRIPT}}", transcript)
+    prompt = prompt.replace("{{TIPO_OVERRIDE}}", tipo_override)
+    prompt = prompt.replace("{{INSTRUCCION_TIPO}}", instruccion_tipo)
 
     headers = {
         "x-api-key": api_key,
@@ -82,16 +132,7 @@ Reglas:
         ],
     }
 
-    respuesta = requests.post(
-        CLAUDE_URL,
-        headers=headers,
-        json=payload,
-        verify=False,
-        timeout=120,
-    )
-
-    if respuesta.status_code != 200:
-        raise ValueError(f"Error de Claude API: {respuesta.status_code} — {respuesta.text[:300]}")
+    respuesta = _llamar_claude_con_retry(CLAUDE_URL, headers=headers, payload=payload)
 
     respuesta_json = respuesta.json()
 
