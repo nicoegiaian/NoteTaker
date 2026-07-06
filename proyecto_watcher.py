@@ -31,6 +31,21 @@ COLA_FILE        = r"C:\Users\degiaian\OneDrive - ASE Conecta\Documentos\PMO\PM 
 DIGEST_LOG_FILE  = r"C:\Users\degiaian\OneDrive - ASE Conecta\Documentos\PMO\PM Agent\digest_log.json"
 ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
 
+# ─── MODELOS ──────────────────────────────────────────────
+# Haiku para ingesta/extracción de alto volumen (F3, digest de archivos legacy).
+# Sonnet para el razonamiento del digest diario (puntos ciegos, síntesis).
+# Para máxima calidad, cambiar MODELO_DIGEST a "claude-opus-4-8".
+MODELO_DEFAULT = "claude-haiku-4-5-20251001"
+MODELO_DIGEST  = "claude-sonnet-5"
+
+# Precio USD por token (entrada, salida). Sonnet 5 usa tarifa estándar
+# (durante el intro hasta 2026-08-31 el costo real es menor).
+_PRECIOS_USD = {
+    "claude-haiku-4-5-20251001": (0.000001, 0.000005),
+    "claude-sonnet-5":           (0.000003, 0.000015),
+    "claude-opus-4-8":           (0.000005, 0.000025),
+}
+
 
 # ─── COLA ─────────────────────────────────────────────────
 def cargar_cola() -> dict:
@@ -307,7 +322,7 @@ def guardar_contexto(proyecto: str, contenido_agente: str):
 
 
 # ─── CLAUDE API ───────────────────────────────────────────
-def llamar_claude(prompt: str) -> dict:
+def llamar_claude(prompt: str, modelo: str = MODELO_DEFAULT, sin_pensar: bool = False) -> dict:
     api_key = os.getenv("ANTHROPIC_API_KEY")
     headers = {
         "x-api-key": api_key,
@@ -315,34 +330,45 @@ def llamar_claude(prompt: str) -> dict:
         "content-type": "application/json",
     }
     payload = {
-        "model": "claude-haiku-4-5-20251001",
+        "model": modelo,
         "max_tokens": 2500,
         "messages": [{"role": "user", "content": prompt}],
     }
+    # Sonnet 5 trae thinking adaptativo por defecto; lo desactivamos para el digest
+    # (salida y costo predecibles, sin que el thinking consuma el presupuesto de tokens).
+    if sin_pensar:
+        payload["thinking"] = {"type": "disabled"}
+
     resp = requests.post(
         ANTHROPIC_API_URL,
         headers=headers,
         json=payload,
         verify=False,
-        timeout=60,
+        timeout=90,
     )
     resp.raise_for_status()
     data = resp.json()
+
+    # Extraer el primer bloque de texto (puede haber bloques 'thinking' antes)
+    texto = next((b.get("text", "") for b in data.get("content", []) if b.get("type") == "text"), "")
+
     return {
-        "texto": data["content"][0]["text"],
+        "texto": texto,
         "input_tokens": data["usage"]["input_tokens"],
         "output_tokens": data["usage"]["output_tokens"],
     }
 
 
 # ─── TOKENS ───────────────────────────────────────────────
-def registrar_tokens(proyecto: str, funcion: str, input_tokens: int, output_tokens: int):
+def registrar_tokens(proyecto: str, funcion: str, input_tokens: int, output_tokens: int,
+                     modelo: str = MODELO_DEFAULT):
     try:
         from openpyxl import load_workbook
         ruta = Path(CONTEXTO_FOLDER) / "PM_Agent_Registro.xlsx"
         wb = load_workbook(ruta)
         ws = wb.active
-        costo = (input_tokens * 0.0000008) + (output_tokens * 0.000004)
+        precio_in, precio_out = _PRECIOS_USD.get(modelo, _PRECIOS_USD[MODELO_DEFAULT])
+        costo = (input_tokens * precio_in) + (output_tokens * precio_out)
         ws.append([
             datetime.now().strftime("%d/%m/%Y %H:%M"),
             proyecto,
@@ -485,7 +511,7 @@ def digest_proyecto(proyecto: str, items: list, cutoff_reuniones: datetime):
               .replace("{{REUNIONES}}",  texto_reuniones or "Sin reuniones.")
               .replace("{{ARCHIVOS}}",   texto_archivos))
 
-    resultado = llamar_claude(prompt)
+    resultado = llamar_claude(prompt, modelo=MODELO_DIGEST, sin_pensar=True)
     texto_completo = resultado["texto"]
 
     # Separar digest del contexto actualizado
@@ -499,8 +525,9 @@ def digest_proyecto(proyecto: str, items: list, cutoff_reuniones: datetime):
             log.info(f"   Contexto actualizado para {proyecto}")
 
     escribir_novedad(proyecto, digest, "digest_diario")
-    registrar_tokens(proyecto, "Digest_Diario", resultado["input_tokens"], resultado["output_tokens"])
-    log.info(f"[Digest] Diario completado para {proyecto}")
+    registrar_tokens(proyecto, "Digest_Diario", resultado["input_tokens"], resultado["output_tokens"],
+                     modelo=MODELO_DIGEST)
+    log.info(f"[Digest] Diario completado para {proyecto} (modelo: {MODELO_DIGEST})")
 
 
 def digest_todos_los_proyectos():
