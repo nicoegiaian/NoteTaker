@@ -192,21 +192,31 @@ def _armar_contexto(archivos: list[dict]) -> str:
 
 
 # ─── PASO 2: RESPUESTA ──────────────────────────────────────────────────────
-def _responder(pregunta: str, contexto: str, historial: list) -> tuple[str, int, int]:
+def _responder(pregunta: str, contexto: str, historial: list, contexto_proyecto: str = "") -> tuple[str, int, int]:
     """Retorna (respuesta, input_tokens, output_tokens)."""
     api_key = os.getenv("ANTHROPIC_API_KEY")
 
     system = (
-        "Sos un asistente de gestión de proyectos. Respondés preguntas sobre reuniones, "
-        "decisiones y compromisos basándote ÚNICAMENTE en los transcripts y minutas que se te proveen. "
-        "Siempre mencioná de qué archivo o reunión proviene la información (nombre del archivo y fecha). "
-        "Si la información no está en el contexto provisto, decilo claramente — no inventes datos. "
+        "Sos un asistente de gestión de proyectos que conoce a fondo el proyecto sobre el que te preguntan. "
+        "Contás con dos fuentes: (1) la FICHA DEL PROYECTO —alcance, equipo, hitos, riesgos, estado actual y "
+        "decisiones tomadas, mantenida al día— que es tu conocimiento de base sobre el proyecto; y (2) las "
+        "FUENTES —transcripts y minutas de reuniones concretas—. "
+        "Usá la ficha para entender el contexto y responder sobre el estado, alcance, riesgos o historia del proyecto. "
+        "Cuando afirmes algo puntual que se dijo o decidió en una reunión, citá el archivo y la fecha de la fuente. "
+        "Si algo no está ni en la ficha ni en las fuentes, decilo claramente — no inventes datos. "
         "Respondé en español, de forma concisa y directa."
     )
 
+    bloques = []
+    if contexto_proyecto:
+        bloques.append(f"=== FICHA DEL PROYECTO ===\n{contexto_proyecto}")
+    if contexto:
+        bloques.append(f"=== FUENTES (transcripts y minutas) ===\n{contexto}")
+    contexto_completo = "\n\n".join(bloques) if bloques else "Sin información disponible."
+
     messages = historial + [{
         "role":    "user",
-        "content": f"Contexto disponible:\n\n{contexto}\n\n---\nPregunta: {pregunta}",
+        "content": f"{contexto_completo}\n\n---\nPregunta: {pregunta}",
     }]
 
     headers = {
@@ -236,21 +246,31 @@ def _responder(pregunta: str, contexto: str, historial: list) -> tuple[str, int,
 
 # ─── PIPELINE COMPLETO ──────────────────────────────────────────────────────
 def procesar_consulta(pregunta: str, proyecto: str, historial: list) -> dict:
+    # Ficha del proyecto (alcance, equipo, hitos, riesgos, estado, decisiones),
+    # mantenida por F3 y el digest de archivos. Es el conocimiento de base del agente.
+    from proyecto_watcher import cargar_contexto, registrar_tokens
+    contexto_proyecto = cargar_contexto(proyecto)
+    tiene_ficha = bool(contexto_proyecto) and contexto_proyecto != "Sin contexto previo disponible."
+
     vtts  = _listar_vtts(proyecto)
     htmls = _listar_htmls(proyecto)
 
-    if not vtts and not htmls:
+    if not vtts and not htmls and not tiene_ficha:
         return {
-            "respuesta":       f"No encontré archivos para el proyecto '{proyecto}'.",
+            "respuesta":       f"No encontré información para el proyecto '{proyecto}'.",
             "archivos_usados": [],
         }
 
-    log.info(f"[Chat] Proyecto: {proyecto} | VTTs: {len(vtts)} | HTMLs: {len(htmls)}")
+    log.info(f"[Chat] Proyecto: {proyecto} | VTTs: {len(vtts)} | HTMLs: {len(htmls)} | ficha: {tiene_ficha}")
 
-    indice, todos                          = _armar_indice(vtts, htmls)
-    archivos_relevantes, tok_in1, tok_out1 = _seleccionar_relevantes(pregunta, indice, todos)
+    # Paso 1 — selección de archivos relevantes (solo si hay archivos)
+    archivos_relevantes, tok_in1, tok_out1 = [], 0, 0
+    if vtts or htmls:
+        indice, todos = _armar_indice(vtts, htmls)
+        archivos_relevantes, tok_in1, tok_out1 = _seleccionar_relevantes(pregunta, indice, todos)
 
-    if not archivos_relevantes:
+    # Sin archivos relevantes ni ficha no hay con qué responder
+    if not archivos_relevantes and not tiene_ficha:
         return {
             "respuesta": (
                 "No encontré archivos relevantes para tu pregunta. "
@@ -259,12 +279,14 @@ def procesar_consulta(pregunta: str, proyecto: str, historial: list) -> dict:
             "archivos_usados": [],
         }
 
-    contexto                               = _armar_contexto(archivos_relevantes)
-    respuesta, tok_in2, tok_out2           = _responder(pregunta, contexto, historial)
+    # Paso 2 — respuesta con la ficha como base + las fuentes específicas seleccionadas
+    contexto                     = _armar_contexto(archivos_relevantes) if archivos_relevantes else ""
+    respuesta, tok_in2, tok_out2 = _responder(
+        pregunta, contexto, historial, contexto_proyecto if tiene_ficha else ""
+    )
 
     # Registrar tokens acumulados de ambos pasos
     try:
-        from proyecto_watcher import registrar_tokens
         registrar_tokens(proyecto, "Chat_Consulta", tok_in1 + tok_in2, tok_out1 + tok_out2)
     except Exception as e:
         log.warning(f"[Chat] No se pudo registrar tokens: {e}")
