@@ -188,9 +188,9 @@ def analizar_minuta_cruzada(notas: dict, nombre_archivo: str, ruta_html: str, ou
             guardar_contexto(proyecto, nuevo_contexto)
             log.info(f"[F3] Contexto actualizado para {proyecto}")
 
-    # Publicar en Teams via carpeta de novedades
-    escribir_novedad(proyecto, analisis, "f3_minuta")
+    # NO se postea a Teams: la reunión se reporta en el digest diario unificado.
+    # F3 sigue corriendo para mantener actualizada la ficha del proyecto (contexto).
     registrar_tokens(proyecto, "F3_Minuta", resultado["input_tokens"], resultado["output_tokens"])
 
-    log.info(f"[F3] Análisis cruzado completado para {proyecto}")
+    log.info(f"[F3] Análisis cruzado completado para {proyecto} (ficha actualizada, sin post a Teams)")
     return analisis

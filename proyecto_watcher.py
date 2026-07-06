@@ -8,7 +8,9 @@ import logging
 import requests
 import urllib3
 from pathlib import Path
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
+
+from config import PROYECTOS as PROYECTOS_KEYWORDS
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 log = logging.getLogger(__name__)
@@ -24,6 +26,7 @@ PROYECTOS = {
 EXTENSIONES_SOPORTADAS = {".docx", ".pdf", ".xlsx", ".xls"}
 CONTEXTO_FOLDER  = r"C:\Users\degiaian\OneDrive - ASE Conecta\Documentos\PMO\PM Agent"
 NOVEDADES_FOLDER = r"C:\Users\degiaian\OneDrive - ASE Conecta\Documentos\PMO\PM Agent\Novedades_de_archivos"
+MAILS_FOLDER     = r"C:\Users\degiaian\OneDrive - ASE Conecta\Documentos\PMO\PM Agent\Mails_del_dia"
 COLA_FILE        = r"C:\Users\degiaian\OneDrive - ASE Conecta\Documentos\PMO\PM Agent\cola_archivos.json"
 DIGEST_LOG_FILE  = r"C:\Users\degiaian\OneDrive - ASE Conecta\Documentos\PMO\PM Agent\digest_log.json"
 ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
@@ -365,48 +368,122 @@ def escribir_novedad(proyecto: str, mensaje: str, sufijo: str):
         log.error(f"Error escribiendo novedad: {e}")
 
 
+# ─── FUENTES DEL DIGEST DIARIO ────────────────────────────
+def _detectar_proyecto_por_nombre(nombre: str) -> str | None:
+    """Detecta el proyecto por palabra clave en el nombre de archivo (minutas)."""
+    nombre_lower = nombre.lower()
+    for clave, proyecto in PROYECTOS_KEYWORDS.items():
+        if clave.lower() in nombre_lower:
+            return proyecto
+    return None
+
+
+def leer_mails_del_dia(proyecto: str) -> str:
+    """Lee el archivo de mails que Power Automate dejó hoy para el proyecto."""
+    fecha = date.today().strftime("%Y%m%d")
+    ruta = Path(MAILS_FOLDER) / f"{proyecto}_{fecha}.txt"
+    if not ruta.exists():
+        return ""
+    try:
+        return ruta.read_text(encoding="utf-8").strip()
+    except Exception as e:
+        log.warning(f"[Digest] No se pudo leer mails de {proyecto}: {e}")
+        return ""
+
+
+def _html_a_texto(ruta: str, limite: int = 3000) -> str:
+    """Extrae texto plano de una minuta HTML."""
+    from bs4 import BeautifulSoup
+    try:
+        contenido = Path(ruta).read_text(encoding="utf-8")
+        soup = BeautifulSoup(contenido, "html.parser")
+        return soup.get_text(separator="\n", strip=True)[:limite]
+    except Exception as e:
+        log.warning(f"[Digest] No se pudo leer minuta {Path(ruta).name}: {e}")
+        return ""
+
+
+def leer_reuniones_recientes(proyecto: str, desde: datetime, maximo: int = 5) -> str:
+    """Junta el texto de las minutas (HTML) del proyecto generadas desde `desde`."""
+    output = os.getenv("OUTPUT_FOLDER", "")
+    if not output or not Path(output).exists():
+        return ""
+
+    partes = []
+    htmls = sorted(Path(output).glob("*.html"), key=lambda f: f.stat().st_mtime, reverse=True)
+    for html in htmls:
+        if _detectar_proyecto_por_nombre(html.name) != proyecto:
+            continue
+        if datetime.fromtimestamp(html.stat().st_mtime) < desde:
+            continue
+        texto = _html_a_texto(str(html))
+        if texto:
+            fecha = datetime.fromtimestamp(html.stat().st_mtime).strftime("%d/%m/%Y")
+            partes.append(f"--- REUNIÓN {fecha}: {html.name} ---\n{texto}")
+        if len(partes) >= maximo:
+            break
+
+    return "\n\n".join(partes)
+
+
+def _cutoff_reuniones() -> datetime:
+    """Desde cuándo juntar reuniones: última ejecución del digest, o 3 días atrás."""
+    log_data = cargar_digest_log()
+    try:
+        return datetime.fromisoformat(log_data.get("ultima_ejecucion", ""))
+    except Exception:
+        return datetime.now() - timedelta(days=3)
+
+
 # ─── DIGEST ───────────────────────────────────────────────
-def digest_proyecto(proyecto: str, items: list):
-    """Procesa la cola de un proyecto y genera el digest."""
-    if not items:
-        log.info(f"[Digest] Sin archivos encolados para {proyecto}")
-        return
-
-    log.info(f"[Digest] Procesando {len(items)} archivos para {proyecto}")
-
+def digest_proyecto(proyecto: str, items: list, cutoff_reuniones: datetime):
+    """Genera el digest diario unificado del proyecto: mails + reuniones + archivos."""
+    # 1. Archivos modificados (cola de F1b)
     contenidos = []
     for item in items:
-        ruta = item["ruta"]
+        ruta   = item["ruta"]
         nombre = item["nombre"]
         evento = item["evento"]
-
         if not Path(ruta).exists():
             log.warning(f"   Archivo no encontrado, ignorando: {nombre}")
             continue
-
         contenido = leer_contenido(ruta)
         if contenido and len(contenido.strip()) > 50:
             contenidos.append(f"--- ARCHIVO: {nombre} ({evento}) ---\n{contenido}")
-        else:
-            contenidos.append(f"--- ARCHIVO: {nombre} ({evento}) ---\n[Contenido no legible]")
+    texto_archivos = "\n\n".join(contenidos) if contenidos else "Sin archivos modificados."
 
-    if not contenidos:
-        log.info(f"[Digest] Sin contenido legible para {proyecto}")
+    # 2. Mails de ayer (los dejó Power Automate)
+    texto_mails = leer_mails_del_dia(proyecto)
+
+    # 3. Reuniones recientes (minutas generadas desde la última corrida)
+    texto_reuniones = leer_reuniones_recientes(proyecto, cutoff_reuniones)
+
+    # Decidir si hay algo que reportar
+    hay_mails     = bool(texto_mails) and texto_mails.strip() not in ("", "[]")
+    hay_reuniones = bool(texto_reuniones)
+    hay_archivos  = bool(contenidos)
+    if not (hay_mails or hay_reuniones or hay_archivos):
+        log.info(f"[Digest] {proyecto}: sin novedades ayer, no se genera digest.")
         return
 
-    contexto_actual = cargar_contexto(proyecto)
-    contenido_archivos = "\n\n".join(contenidos)
+    log.info(f"[Digest] {proyecto} | mails: {hay_mails} | reuniones: {hay_reuniones} | archivos: {len(contenidos)}")
 
-    prompt_path = Path(CONTEXTO_FOLDER) / "Prompts" / "prompt_digest_archivos.txt"
+    contexto_actual = cargar_contexto(proyecto)
+
+    prompt_path = Path(CONTEXTO_FOLDER) / "Prompts" / "prompt_digest_diario.txt"
     try:
         prompt_template = prompt_path.read_text(encoding="utf-8")
     except Exception as e:
-        log.error(f"No se pudo leer prompt: {e}")
+        log.error(f"No se pudo leer prompt diario: {e}")
         return
 
-    prompt = prompt_template.replace("{{PROYECTO}}", proyecto)
-    prompt = prompt.replace("{{CONTEXTO}}", contexto_actual)
-    prompt = prompt.replace("{{ARCHIVOS}}", contenido_archivos)
+    prompt = (prompt_template
+              .replace("{{PROYECTO}}",   proyecto)
+              .replace("{{FECHA}}",      date.today().strftime("%d/%m/%Y"))
+              .replace("{{CONTEXTO}}",   contexto_actual)
+              .replace("{{MAILS}}",      texto_mails or "Sin mails.")
+              .replace("{{REUNIONES}}",  texto_reuniones or "Sin reuniones.")
+              .replace("{{ARCHIVOS}}",   texto_archivos))
 
     resultado = llamar_claude(prompt)
     texto_completo = resultado["texto"]
@@ -417,22 +494,23 @@ def digest_proyecto(proyecto: str, items: list):
 
     if len(partes) > 1:
         nuevo_contexto = partes[1].strip()
-        if nuevo_contexto != "SIN_CAMBIOS":
+        if nuevo_contexto and nuevo_contexto != "SIN_CAMBIOS":
             guardar_contexto(proyecto, nuevo_contexto)
             log.info(f"   Contexto actualizado para {proyecto}")
 
-    escribir_novedad(proyecto, digest, "digest_archivos")
-    registrar_tokens(proyecto, "Digest_Archivos", resultado["input_tokens"], resultado["output_tokens"])
-    log.info(f"[Digest] Completado para {proyecto}")
+    escribir_novedad(proyecto, digest, "digest_diario")
+    registrar_tokens(proyecto, "Digest_Diario", resultado["input_tokens"], resultado["output_tokens"])
+    log.info(f"[Digest] Diario completado para {proyecto}")
 
 
 def digest_todos_los_proyectos():
-    """Corre el digest solo para proyectos pendientes."""
+    """Corre el digest diario unificado solo para proyectos pendientes."""
     if digest_ya_corrido_hoy():
         log.info("[Digest] Ya se corrió hoy para todos los proyectos, saltando.")
         return
 
-    log.info("[Digest] Iniciando digest diario de archivos...")
+    log.info("[Digest] Iniciando digest diario unificado...")
+    cutoff_reuniones = _cutoff_reuniones()  # capturar antes de marcar proyectos
     cola = cargar_cola()
     ya_procesados = proyectos_procesados_hoy()
 
@@ -457,7 +535,7 @@ def digest_todos_los_proyectos():
                 items_restantes.append(item)
 
         try:
-            digest_proyecto(proyecto, items_a_procesar)
+            digest_proyecto(proyecto, items_a_procesar, cutoff_reuniones)
             # Solo limpiar la cola y marcar si fue exitoso
             cola[proyecto] = items_restantes
             marcar_proyecto_procesado(proyecto)
