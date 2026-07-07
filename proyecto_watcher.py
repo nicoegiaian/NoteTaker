@@ -405,11 +405,25 @@ def _detectar_proyecto_por_nombre(nombre: str) -> str | None:
 
 
 def leer_mails_del_dia(proyecto: str) -> str:
-    """Lee el archivo de mails que Power Automate dejó hoy para el proyecto."""
+    """Lee el archivo de mails que Power Automate dejó hoy para el proyecto.
+    Acepta el nombre exacto ('Programa Salesforce_AAAAMMDD.txt') o cualquier
+    archivo del día cuyo nombre contenga una palabra clave del proyecto
+    ('Salesforce_AAAAMMDD.txt')."""
     fecha = date.today().strftime("%Y%m%d")
-    ruta = Path(MAILS_FOLDER) / f"{proyecto}_{fecha}.txt"
-    if not ruta.exists():
+    carpeta = Path(MAILS_FOLDER)
+    if not carpeta.exists():
         return ""
+
+    ruta = carpeta / f"{proyecto}_{fecha}.txt"
+    if not ruta.exists():
+        # Fallback: buscar por palabra clave entre los archivos del día
+        for f in carpeta.glob(f"*_{fecha}.txt"):
+            if _detectar_proyecto_por_nombre(f.name) == proyecto:
+                ruta = f
+                break
+        else:
+            return ""
+
     try:
         return ruta.read_text(encoding="utf-8").strip()
     except Exception as e:
