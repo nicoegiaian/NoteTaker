@@ -46,6 +46,11 @@ _PRECIOS_USD = {
     "claude-opus-4-8":           (0.000005, 0.000025),
 }
 
+# Matriz de gobierno (riesgos + decisiones) por proyecto. Solo los integrados.
+MATRIZ_PATHS = {
+    "Programa Salesforce": r"C:\Users\degiaian\OneDrive - ASE Conecta\CORPO - Gerencia de Proyectos Corporativos - Proyectos en curso\Salesforce HealthCloud\2. Planificación\Matriz de Anexos Salesforce.xlsx",
+}
+
 
 # ─── COLA ─────────────────────────────────────────────────
 def cargar_cola() -> dict:
@@ -431,6 +436,99 @@ def leer_mails_del_dia(proyecto: str) -> str:
         return ""
 
 
+def _filas_con_encabezado(ws, marcador: str = "ID"):
+    """Encuentra la fila de encabezado (la que contiene `marcador`) y devuelve
+    los registros siguientes como dicts {encabezado: valor}."""
+    filas = list(ws.iter_rows(values_only=True))
+    headers = None
+    corte = 0
+    for i, fila in enumerate(filas):
+        celdas = [str(c).strip() if c is not None else "" for c in fila]
+        if marcador in celdas:
+            headers = celdas
+            corte = i + 1
+            break
+    if headers is None:
+        return []
+    registros = []
+    for fila in filas[corte:]:
+        vals = ["" if c is None else str(c).strip() for c in fila]
+        reg = {h: (vals[j] if j < len(vals) else "") for j, h in enumerate(headers) if h}
+        registros.append(reg)
+    return registros
+
+
+def leer_matriz(proyecto: str) -> str:
+    """Lee la matriz de gobierno del proyecto (solapas de Riesgos y Decisiones)
+    y la devuelve como texto para el prompt. Solo proyectos en MATRIZ_PATHS."""
+    ruta = MATRIZ_PATHS.get(proyecto)
+    if not ruta or not Path(ruta).exists():
+        return ""
+    try:
+        from openpyxl import load_workbook
+        wb = load_workbook(ruta, data_only=True, read_only=True)
+    except Exception as e:
+        log.warning(f"[Digest] No se pudo abrir la matriz de {proyecto}: {e}")
+        return ""
+
+    def _corto(txt, n=400):
+        return txt[:n] + "…" if len(txt) > n else txt
+
+    partes = []
+    try:
+        # ── Riesgos ──
+        if "Matriz de Riesgos" in wb.sheetnames:
+            lineas = []
+            for r in _filas_con_encabezado(wb["Matriz de Riesgos"]):
+                rid    = r.get("ID", "")
+                nombre = r.get("Nombre", "")
+                desc   = r.get("Descripcion", "") or r.get("Descripción", "")
+                if not rid or not (nombre or desc):
+                    continue
+                cab = " | ".join(x for x in [
+                    rid, nombre,
+                    f"Criticidad: {r.get('Criticidad','')}" if r.get("Criticidad") else "",
+                    f"Estado: {r.get('Estado','')}"         if r.get("Estado") else "",
+                    f"Plazo: {r.get('Plazo','')}"           if r.get("Plazo") else "",
+                    f"Resp: {r.get('Responsable','')}"      if r.get("Responsable") else "",
+                ] if x)
+                bloque = f"- {cab}"
+                if desc:
+                    bloque += f"\n    Descripción: {_corto(desc)}"
+                if r.get("Acciones a Tomar"):
+                    bloque += f"\n    Acción: {_corto(r['Acciones a Tomar'])}"
+                lineas.append(bloque)
+            if lineas:
+                partes.append("=== RIESGOS REGISTRADOS ===\n" + "\n".join(lineas))
+
+        # ── Decisiones ──
+        if "Decision Log" in wb.sheetnames:
+            lineas = []
+            for r in _filas_con_encabezado(wb["Decision Log"]):
+                did = r.get("ID", "")
+                det = r.get("Detalle", "")
+                if not did or not det:
+                    continue
+                cab = " | ".join(x for x in [
+                    did,
+                    r.get("Fecha Inicio", ""),
+                    f"Estado: {r.get('Estado','')}"   if r.get("Estado") else "",
+                    f"Impacto: {r.get('Impacto','')}" if r.get("Impacto") else "",
+                ] if x)
+                bloque = f"- {cab}\n    {_corto(det)}"
+                if r.get("Justificación"):
+                    bloque += f"\n    Justificación: {_corto(r['Justificación'])}"
+                if r.get("Vínculo a Riesgo / Dependencia"):
+                    bloque += f"\n    Vínculo: {r['Vínculo a Riesgo / Dependencia']}"
+                lineas.append(bloque)
+            if lineas:
+                partes.append("=== DECISIONES REGISTRADAS ===\n" + "\n".join(lineas))
+    finally:
+        wb.close()
+
+    return "\n\n".join(partes)
+
+
 def _html_a_texto(ruta: str, limite: int = 3000) -> str:
     """Extrae texto plano de una minuta HTML."""
     from bs4 import BeautifulSoup
@@ -498,6 +596,10 @@ def digest_proyecto(proyecto: str, items: list, cutoff_reuniones: datetime):
     # 3. Reuniones recientes (minutas generadas desde la última corrida)
     texto_reuniones = leer_reuniones_recientes(proyecto, cutoff_reuniones)
 
+    # 4. Matriz de gobierno (riesgos + decisiones) — solo proyectos integrados.
+    #    Es contexto para razonar/seguir; NO dispara el digest por sí sola.
+    texto_matriz = leer_matriz(proyecto)
+
     # Decidir si hay algo que reportar
     hay_mails     = bool(texto_mails) and texto_mails.strip() not in ("", "[]")
     hay_reuniones = bool(texto_reuniones)
@@ -521,6 +623,7 @@ def digest_proyecto(proyecto: str, items: list, cutoff_reuniones: datetime):
               .replace("{{PROYECTO}}",   proyecto)
               .replace("{{FECHA}}",      date.today().strftime("%d/%m/%Y"))
               .replace("{{CONTEXTO}}",   contexto_actual)
+              .replace("{{MATRIZ}}",     texto_matriz or "Sin matriz integrada para este proyecto.")
               .replace("{{MAILS}}",      texto_mails or "Sin mails.")
               .replace("{{REUNIONES}}",  texto_reuniones or "Sin reuniones.")
               .replace("{{ARCHIVOS}}",   texto_archivos))
