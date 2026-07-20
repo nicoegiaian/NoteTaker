@@ -132,17 +132,6 @@ def proyectos_procesados_hoy() -> set:
         pass
     return set()
 
-def proyectos_procesados_hoy() -> set:
-    """Retorna el set de proyectos ya procesados hoy."""
-    log_data = cargar_digest_log()
-    ultima = log_data.get("fecha", "")
-    try:
-        if datetime.fromisoformat(ultima).date() == date.today():
-            return set(log_data.get("proyectos_ok", []))
-    except Exception:
-        pass
-    return set()
-
 
 def marcar_proyecto_procesado(proyecto: str):
     """Marca un proyecto como procesado exitosamente hoy."""
