@@ -10,46 +10,23 @@ import urllib3
 from pathlib import Path
 from datetime import datetime, date, timedelta
 
-from config import PROYECTOS as PROYECTOS_KEYWORDS
+# Toda la configuración tuneable vive en configuracion.toml (leída por config.py).
+from config import (
+    PROYECTOS as PROYECTOS_KEYWORDS,        # palabra clave → proyecto
+    PROYECTOS_POR_CARPETA as PROYECTOS,     # carpeta → proyecto (F1b)
+    EXTENSIONES_SOPORTADAS,
+    CONTEXTO_FOLDER, NOVEDADES_FOLDER, MAILS_FOLDER, COLA_FILE, DIGEST_LOG_FILE,
+    MODELO_DEFAULT, MODELO_DIGEST, MATRIZ_PATHS,
+    PRECIOS_USD as _PRECIOS_USD,
+    ASUNTOS_RUIDO as _ASUNTOS_RUIDO,
+    MARCADORES_CITA as _MARCADORES_CITA,
+)
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 log = logging.getLogger(__name__)
 
-# ─── CONFIGURACIÓN ────────────────────────────────────────
-PROYECTOS = {
-    r"C:\Users\degiaian\OneDrive - ASE Conecta\CORPO - Gerencia de Proyectos Corporativos - Proyectos en curso\DevSecOps": "DevSecOps",
-    r"C:\Users\degiaian\OneDrive - ASE Conecta\CORPO - Gerencia de Proyectos Corporativos - Proyectos en curso\Monitoreo": "Monitoreo",
-    r"C:\Users\degiaian\OneDrive - ASE Conecta\CORPO - Gerencia de Proyectos Corporativos - Proyectos en curso\Salesforce HealthCloud": "Programa Salesforce",
-    r"C:\Users\degiaian\OneDrive - ASE Conecta\CORPO - Seguridad-SI e INFRA - Obsolescencia": "Obsolescencia",
-}
-
-EXTENSIONES_SOPORTADAS = {".docx", ".pdf", ".xlsx", ".xls"}
-CONTEXTO_FOLDER  = r"C:\Users\degiaian\OneDrive - ASE Conecta\Documentos\PMO\PM Agent"
-NOVEDADES_FOLDER = r"C:\Users\degiaian\OneDrive - ASE Conecta\Documentos\PMO\PM Agent\Novedades_de_archivos"
-MAILS_FOLDER     = r"C:\Users\degiaian\OneDrive - ASE Conecta\Documentos\PMO\PM Agent\Mails_del_dia"
-COLA_FILE        = r"C:\Users\degiaian\OneDrive - ASE Conecta\Documentos\PMO\PM Agent\cola_archivos.json"
-DIGEST_LOG_FILE  = r"C:\Users\degiaian\OneDrive - ASE Conecta\Documentos\PMO\PM Agent\digest_log.json"
+# Endpoint de la API (constante, no es configuración de usuario).
 ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
-
-# ─── MODELOS ──────────────────────────────────────────────
-# Haiku para ingesta/extracción de alto volumen (F3, digest de archivos legacy).
-# Sonnet para el razonamiento del digest diario (puntos ciegos, síntesis).
-# Para máxima calidad, cambiar MODELO_DIGEST a "claude-opus-4-8".
-MODELO_DEFAULT = "claude-haiku-4-5-20251001"
-MODELO_DIGEST  = "claude-sonnet-5"
-
-# Precio USD por token (entrada, salida). Sonnet 5 usa tarifa estándar
-# (durante el intro hasta 2026-08-31 el costo real es menor).
-_PRECIOS_USD = {
-    "claude-haiku-4-5-20251001": (0.000001, 0.000005),
-    "claude-sonnet-5":           (0.000003, 0.000015),
-    "claude-opus-4-8":           (0.000005, 0.000025),
-}
-
-# Matriz de gobierno (riesgos + decisiones) por proyecto. Solo los integrados.
-MATRIZ_PATHS = {
-    "Programa Salesforce": r"C:\Users\degiaian\OneDrive - ASE Conecta\CORPO - Gerencia de Proyectos Corporativos - Proyectos en curso\Salesforce HealthCloud\2. Planificación\Matriz de Anexos Salesforce.xlsx",
-}
 
 
 # ─── COLA ─────────────────────────────────────────────────
@@ -396,33 +373,6 @@ def _detectar_proyecto_por_nombre(nombre: str) -> str | None:
         if clave.lower() in nombre_lower:
             return proyecto
     return None
-
-
-# Asuntos que son ruido de sistema (notificaciones de reunión + auto-replies).
-# Se comparan en minúsculas como subcadena del asunto.
-_ASUNTOS_RUIDO = (
-    "notificación de reenvío de reunión",
-    "notificacion de reenvio de reunion",
-    "aceptada:",
-    "rechazada:",
-    "provisional:",
-    "reunión cancelada",
-    "reunion cancelada",
-    "convocatoria:",
-    "respuesta automática",
-    "respuesta automatica",
-    "automatic reply",
-    "fuera de la oficina",
-    "out of office",
-)
-
-# Marcadores donde arranca la cita del hilo anterior; nos quedamos con lo de arriba.
-_MARCADORES_CITA = (
-    "\nDe:",
-    "\nFrom:",
-    "-----Mensaje original-----",
-    "-----Original Message-----",
-)
 
 
 def _es_ruido(subject: str) -> bool:

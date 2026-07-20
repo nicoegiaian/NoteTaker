@@ -1,55 +1,59 @@
 # ============================================================
-#  CONFIG.PY — Este es el único archivo que vas a editar
-#              con frecuencia. Sin tocar código.
+#  CONFIG.PY — Loader de configuración.
+#
+#  Ya NO se edita a mano (salvo PLANNER_PLANES, ver abajo): toda la
+#  configuración vive en `configuracion.toml`. Este archivo solo la lee
+#  con tomllib y la expone con los nombres que usa el resto del código.
 # ============================================================
 
-# ----------------------------------------------------------
-# MODELO DE WHISPER
-# ----------------------------------------------------------
-WHISPER_MODEL = "base"
+import tomllib
+from pathlib import Path
 
-# ----------------------------------------------------------
-# IDIOMA DE LAS REUNIONES
-# ----------------------------------------------------------
-IDIOMA_REUNIONES = "es"
+_RUTA_TOML = Path(__file__).with_name("configuracion.toml")
+try:
+    with open(_RUTA_TOML, "rb") as _f:
+        _cfg = tomllib.load(_f)
+except FileNotFoundError as e:
+    raise FileNotFoundError(
+        f"No se encontró el archivo de configuración: {_RUTA_TOML}"
+    ) from e
 
-# ----------------------------------------------------------
-# PROYECTOS
-# Formato: "palabra clave en nombre de reunión" : "nombre del proyecto"
-# IMPORTANTE: el valor debe coincidir EXACTAMENTE con el nombre
-# del plan en Microsoft Planner (mayúsculas, espacios, tildes)
-# ----------------------------------------------------------
-PROYECTOS = {
-    # Programa Salesforce — múltiples claves que apuntan al mismo plan
-    "Salesforce":    "Programa Salesforce",
-    "NICE":          "Programa Salesforce",
-    "Ola 0":         "Programa Salesforce",
-    "Ola0":          "Programa Salesforce",
-    "Ola 1":         "Programa Salesforce",
-    "Ola1":          "Programa Salesforce",
+# ── General ──────────────────────────────────────────────
+WHISPER_MODEL             = _cfg["general"]["whisper_model"]
+IDIOMA_REUNIONES          = _cfg["general"]["idioma_reuniones"]
+ESPERA_SINCRONIZACION_SEG = _cfg["general"]["espera_sincronizacion_seg"]
+PROYECTO_DESCONOCIDO      = _cfg["general"]["proyecto_desconocido"]
 
-    # Otros proyectos — nombre exacto igual al plan en Planner
-    "Monitoreo":     "Monitoreo",
-    "Obsolescencia": "Obsolescencia",
-    "DevSecOps":     "DevSecOps",
-    "WURU":          "WURU Finochietto",
-    "Finochietto":   "WURU Finochietto",
-}
+# ── Mapeos de proyecto ───────────────────────────────────
+# Palabra clave → proyecto (para catalogar asuntos/nombres). Orden preservado.
+PROYECTOS             = _cfg["proyectos_por_palabra_clave"]
+# Carpeta → proyecto (monitoreo de archivos F1b en proyecto_watcher).
+PROYECTOS_POR_CARPETA = _cfg["proyectos_por_carpeta"]
 
-# Nombre que aparece si no se detecta ningún proyecto conocido
-PROYECTO_DESCONOCIDO = "Sin Proyecto Asignado"
+# ── Archivos y rutas ─────────────────────────────────────
+EXTENSIONES_SOPORTADAS = set(_cfg["archivos"]["extensiones_soportadas"])
+CONTEXTO_FOLDER  = _cfg["rutas"]["contexto_folder"]
+NOVEDADES_FOLDER = _cfg["rutas"]["novedades_folder"]
+MAILS_FOLDER     = _cfg["rutas"]["mails_folder"]
+COLA_FILE        = _cfg["rutas"]["cola_file"]
+DIGEST_LOG_FILE  = _cfg["rutas"]["digest_log_file"]
 
-# ----------------------------------------------------------
-# COMPORTAMIENTO DEL MONITOR
-# ----------------------------------------------------------
-ESPERA_SINCRONIZACION_SEG = 120  # 2 minutos
+# ── Modelos, precios y matrices ──────────────────────────
+MODELO_DEFAULT = _cfg["modelos"]["default"]
+MODELO_DIGEST  = _cfg["modelos"]["digest"]
+PRECIOS_USD    = {modelo: tuple(precios) for modelo, precios in _cfg["precios_usd"].items()}
+MATRIZ_PATHS   = _cfg["matriz_paths"]
 
-# ----------------------------------------------------------
-# PLANNER
-# Mapeo de nombre de proyecto → ID del plan en Planner
-# Se completa automáticamente la primera vez que el bot
-# se conecta a Planner. No editar manualmente.
-# ----------------------------------------------------------
+# ── Filtros de mails (digest diario) ─────────────────────
+ASUNTOS_RUIDO   = tuple(_cfg["filtros"]["asuntos_ruido"])
+MARCADORES_CITA = tuple(_cfg["filtros"]["marcadores_cita"])
+
+# ============================================================
+#  PLANNER — NO mover a configuracion.toml.
+#  Este bloque lo ESCRIBE automáticamente planner_client.py (por regex)
+#  la primera vez que el bot se conecta a Planner. tomllib es solo-lectura,
+#  así que debe seguir siendo un dict literal acá. No editar manualmente.
+# ============================================================
 PLANNER_PLANES = {
     "DevSecOps": "QNz1pTxlGkWflbBOgjeZbmQADnjD",
     "Programa Salesforce": "lmWVA6a6uEWMb6ks2z4Z0mQABVNT",

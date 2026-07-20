@@ -1,0 +1,85 @@
+# ============================================================
+#  configuracion.toml — Configuración del PM Agent / NoteTaker
+#  Editá ESTE archivo (no el código) para ajustar el comportamiento.
+#  Lo lee config.py con tomllib (Python 3.11+). Sin dependencias extra.
+#  Rutas de Windows: usá comillas simples ('...') para no escapar backslashes.
+# ============================================================
+
+[general]
+whisper_model             = "base"                    # modelo de Whisper
+idioma_reuniones          = "es"
+espera_sincronizacion_seg = 120                       # 2 minutos
+proyecto_desconocido      = "Sin Proyecto Asignado"   # si no se detecta proyecto
+
+# ── Palabras clave → proyecto ───────────────────────────────
+# Cataloga asuntos de reuniones/mails y nombres de archivo. El VALOR debe
+# coincidir EXACTO con el nombre del plan en Microsoft Planner (may/min/tildes).
+# El orden importa: se toma la primera clave que aparezca en el texto.
+[proyectos_por_palabra_clave]
+"Salesforce"    = "Programa Salesforce"
+"NICE"          = "Programa Salesforce"
+"Ola 0"         = "Programa Salesforce"
+"Ola0"          = "Programa Salesforce"
+"Ola 1"         = "Programa Salesforce"
+"Ola1"          = "Programa Salesforce"
+"Monitoreo"     = "Monitoreo"
+"Obsolescencia" = "Obsolescencia"
+"DevSecOps"     = "DevSecOps"
+"WURU"          = "WURU Finochietto"
+"Finochietto"   = "WURU Finochietto"
+
+# ── Carpeta de proyecto → proyecto (monitoreo de archivos F1b) ──
+[proyectos_por_carpeta]
+'C:\Users\degiaian\OneDrive - ASE Conecta\CORPO - Gerencia de Proyectos Corporativos - Proyectos en curso\DevSecOps' = "DevSecOps"
+'C:\Users\degiaian\OneDrive - ASE Conecta\CORPO - Gerencia de Proyectos Corporativos - Proyectos en curso\Monitoreo' = "Monitoreo"
+'C:\Users\degiaian\OneDrive - ASE Conecta\CORPO - Gerencia de Proyectos Corporativos - Proyectos en curso\Salesforce HealthCloud' = "Programa Salesforce"
+'C:\Users\degiaian\OneDrive - ASE Conecta\CORPO - Seguridad-SI e INFRA - Obsolescencia' = "Obsolescencia"
+
+[archivos]
+extensiones_soportadas = [".docx", ".pdf", ".xlsx", ".xls"]
+
+# ── Rutas de trabajo (carpeta PM Agent) ─────────────────────
+[rutas]
+contexto_folder  = 'C:\Users\degiaian\OneDrive - ASE Conecta\Documentos\PMO\PM Agent'
+novedades_folder = 'C:\Users\degiaian\OneDrive - ASE Conecta\Documentos\PMO\PM Agent\Novedades_de_archivos'
+mails_folder     = 'C:\Users\degiaian\OneDrive - ASE Conecta\Documentos\PMO\PM Agent\Mails_del_dia'
+cola_file        = 'C:\Users\degiaian\OneDrive - ASE Conecta\Documentos\PMO\PM Agent\cola_archivos.json'
+digest_log_file  = 'C:\Users\degiaian\OneDrive - ASE Conecta\Documentos\PMO\PM Agent\digest_log.json'
+
+# ── Modelos ─────────────────────────────────────────────────
+# Haiku para ingesta/extracción de alto volumen; Sonnet para el razonamiento
+# del digest. Para máxima calidad, cambiar digest a "claude-opus-4-8".
+[modelos]
+default = "claude-haiku-4-5-20251001"
+digest  = "claude-sonnet-5"
+
+# Precio USD por token [entrada, salida] por modelo.
+[precios_usd]
+"claude-haiku-4-5-20251001" = [0.000001, 0.000005]
+"claude-sonnet-5"           = [0.000003, 0.000015]
+"claude-opus-4-8"           = [0.000005, 0.000025]
+
+# Matriz de gobierno (riesgos + decisiones) por proyecto. Solo los integrados.
+[matriz_paths]
+"Programa Salesforce" = 'C:\Users\degiaian\OneDrive - ASE Conecta\CORPO - Gerencia de Proyectos Corporativos - Proyectos en curso\Salesforce HealthCloud\2. Planificación\Matriz de Anexos Salesforce.xlsx'
+
+# ── Filtros de mails (digest diario) ────────────────────────
+[filtros]
+# Asuntos que se descartan como ruido (se comparan como subcadena, en minúsculas).
+asuntos_ruido = [
+    "notificación de reenvío de reunión",
+    "notificacion de reenvio de reunion",
+    "aceptada:",
+    "rechazada:",
+    "provisional:",
+    "reunión cancelada",
+    "reunion cancelada",
+    "convocatoria:",
+    "respuesta automática",
+    "respuesta automatica",
+    "automatic reply",
+    "fuera de la oficina",
+    "out of office",
+]
+# Marcadores donde arranca la cita del hilo anterior (se corta ahí).
+marcadores_cita = ["\nDe:", "\nFrom:", "-----Mensaje original-----", "-----Original Message-----"]
