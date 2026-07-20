@@ -466,55 +466,75 @@ def _limpiar_mail(mail: dict, limite: int = 2000) -> str | None:
     return f"{cab}\n{texto}"
 
 
+def _archivos_del_proyecto(carpeta: Path, proyecto: str, fecha: str) -> list:
+    """Todos los archivos de mails del día que pertenecen al proyecto: el de
+    nombre exacto y cualquiera cuyo nombre contenga una palabra clave del
+    proyecto. Incluye los de correos enviados, p. ej.
+    'Salesforce_enviados_AAAAMMDD.txt', que se juntan con los de entrada."""
+    rutas = []
+    exacto = carpeta / f"{proyecto}_{fecha}.txt"
+    if exacto.exists():
+        rutas.append(exacto)
+    for f in sorted(carpeta.glob(f"*_{fecha}.txt")):
+        if f == exacto:
+            continue
+        if _detectar_proyecto_por_nombre(f.name) == proyecto:
+            rutas.append(f)
+    return rutas
+
+
 def leer_mails_del_dia(proyecto: str) -> str:
-    """Lee el archivo de mails que Power Automate dejó hoy para el proyecto y lo
-    devuelve limpio: parsea el JSON, extrae el cuerpo (HTML→texto), corta la cita
-    del hilo y descarta notificaciones de reunión y respuestas automáticas.
+    """Junta TODOS los archivos de mails que Power Automate dejó hoy para el
+    proyecto (entrada + enviados) y los devuelve limpios: parsea el JSON, extrae
+    el cuerpo (HTML→texto), corta la cita del hilo, descarta notificaciones de
+    reunión y respuestas automáticas, y deduplica.
 
     Acepta el nombre exacto ('Programa Salesforce_AAAAMMDD.txt') o cualquier
     archivo del día cuyo nombre contenga una palabra clave del proyecto
-    ('Salesforce_AAAAMMDD.txt')."""
+    ('Salesforce_AAAAMMDD.txt', 'Salesforce_enviados_AAAAMMDD.txt')."""
     fecha = date.today().strftime("%Y%m%d")
     carpeta = Path(MAILS_FOLDER)
     if not carpeta.exists():
         return ""
 
-    ruta = carpeta / f"{proyecto}_{fecha}.txt"
-    if not ruta.exists():
-        # Fallback: buscar por palabra clave entre los archivos del día
-        for f in carpeta.glob(f"*_{fecha}.txt"):
-            if _detectar_proyecto_por_nombre(f.name) == proyecto:
-                ruta = f
-                break
-        else:
-            return ""
-
-    try:
-        contenido = ruta.read_text(encoding="utf-8").strip()
-    except Exception as e:
-        log.warning(f"[Digest] No se pudo leer mails de {proyecto}: {e}")
+    rutas = _archivos_del_proyecto(carpeta, proyecto, fecha)
+    if not rutas:
         return ""
 
-    if not contenido or contenido == "[]":
-        return ""
+    mails = []
+    crudos_no_json = []  # compatibilidad con archivos en formato viejo / texto plano
+    for ruta in rutas:
+        try:
+            contenido = ruta.read_text(encoding="utf-8").strip()
+        except Exception as e:
+            log.warning(f"[Digest] No se pudo leer mails de {proyecto} ({ruta.name}): {e}")
+            continue
+        if not contenido or contenido == "[]":
+            continue
+        try:
+            data = json.loads(contenido)
+        except Exception:
+            crudos_no_json.append(contenido)
+            continue
+        if isinstance(data, list):
+            mails.extend(m for m in data if isinstance(m, dict))
+        elif isinstance(data, dict):
+            mails.append(data)
 
-    # Formato esperado: array JSON de Power Automate. Si no parsea (formato viejo
-    # o texto plano), devolvemos el crudo para no perder información.
-    try:
-        mails = json.loads(contenido)
-    except Exception:
-        return contenido
-    if not isinstance(mails, list):
-        return contenido
-
+    # Limpiar + deduplicar (mismo mail capturado en más de un archivo)
+    vistos = set()
     bloques = []
     for mail in mails:
-        if not isinstance(mail, dict):
+        clave = (mail.get("from", ""), mail.get("subject", ""),
+                 mail.get("receivedDateTime", ""))
+        if clave in vistos:
             continue
+        vistos.add(clave)
         bloque = _limpiar_mail(mail)
         if bloque:
             bloques.append(bloque)
 
+    bloques.extend(crudos_no_json)
     return "\n\n---\n\n".join(bloques)
 
 
