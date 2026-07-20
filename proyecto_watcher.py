@@ -398,8 +398,79 @@ def _detectar_proyecto_por_nombre(nombre: str) -> str | None:
     return None
 
 
+# Asuntos que son ruido de sistema (notificaciones de reunión + auto-replies).
+# Se comparan en minúsculas como subcadena del asunto.
+_ASUNTOS_RUIDO = (
+    "notificación de reenvío de reunión",
+    "notificacion de reenvio de reunion",
+    "aceptada:",
+    "rechazada:",
+    "provisional:",
+    "reunión cancelada",
+    "reunion cancelada",
+    "convocatoria:",
+    "respuesta automática",
+    "respuesta automatica",
+    "automatic reply",
+    "fuera de la oficina",
+    "out of office",
+)
+
+# Marcadores donde arranca la cita del hilo anterior; nos quedamos con lo de arriba.
+_MARCADORES_CITA = (
+    "\nDe:",
+    "\nFrom:",
+    "-----Mensaje original-----",
+    "-----Original Message-----",
+)
+
+
+def _es_ruido(subject: str) -> bool:
+    s = (subject or "").strip().lower()
+    return any(marcador in s for marcador in _ASUNTOS_RUIDO)
+
+
+def _cortar_cita(texto: str) -> str:
+    """Corta la cita del hilo anterior: devuelve solo lo nuevo que se escribió."""
+    pos_corte = len(texto)
+    for marcador in _MARCADORES_CITA:
+        pos = texto.find(marcador)
+        if pos != -1:
+            pos_corte = min(pos_corte, pos)
+    return texto[:pos_corte].strip()
+
+
+def _limpiar_mail(mail: dict, limite: int = 2000) -> str | None:
+    """Convierte un mail (dict del JSON de Power Automate) en un bloque de texto
+    limpio para el prompt, o None si es ruido / queda vacío."""
+    subject = mail.get("subject", "")
+    if _es_ruido(subject):
+        return None
+
+    # Cuerpo: preferir 'body' (HTML completo); caer a 'bodyPreview' si no está.
+    crudo = mail.get("body") or mail.get("bodyPreview") or ""
+    if "<" in crudo and ">" in crudo:
+        texto = _html_str_a_texto(crudo)
+    else:
+        texto = crudo
+    texto = _cortar_cita(texto)
+    if len(texto) > limite:
+        texto = texto[:limite] + "…"
+    if not texto:
+        return None
+
+    cab = (f"De: {mail.get('from', '')} | "
+           f"Para: {mail.get('toRecipients', '')} | "
+           f"{mail.get('receivedDateTime', '')}\n"
+           f"Asunto: {subject}")
+    return f"{cab}\n{texto}"
+
+
 def leer_mails_del_dia(proyecto: str) -> str:
-    """Lee el archivo de mails que Power Automate dejó hoy para el proyecto.
+    """Lee el archivo de mails que Power Automate dejó hoy para el proyecto y lo
+    devuelve limpio: parsea el JSON, extrae el cuerpo (HTML→texto), corta la cita
+    del hilo y descarta notificaciones de reunión y respuestas automáticas.
+
     Acepta el nombre exacto ('Programa Salesforce_AAAAMMDD.txt') o cualquier
     archivo del día cuyo nombre contenga una palabra clave del proyecto
     ('Salesforce_AAAAMMDD.txt')."""
@@ -419,10 +490,32 @@ def leer_mails_del_dia(proyecto: str) -> str:
             return ""
 
     try:
-        return ruta.read_text(encoding="utf-8").strip()
+        contenido = ruta.read_text(encoding="utf-8").strip()
     except Exception as e:
         log.warning(f"[Digest] No se pudo leer mails de {proyecto}: {e}")
         return ""
+
+    if not contenido or contenido == "[]":
+        return ""
+
+    # Formato esperado: array JSON de Power Automate. Si no parsea (formato viejo
+    # o texto plano), devolvemos el crudo para no perder información.
+    try:
+        mails = json.loads(contenido)
+    except Exception:
+        return contenido
+    if not isinstance(mails, list):
+        return contenido
+
+    bloques = []
+    for mail in mails:
+        if not isinstance(mail, dict):
+            continue
+        bloque = _limpiar_mail(mail)
+        if bloque:
+            bloques.append(bloque)
+
+    return "\n\n---\n\n".join(bloques)
 
 
 def _filas_con_encabezado(ws, marcador: str = "ID"):
@@ -518,16 +611,24 @@ def leer_matriz(proyecto: str) -> str:
     return "\n\n".join(partes)
 
 
-def _html_a_texto(ruta: str, limite: int = 3000) -> str:
-    """Extrae texto plano de una minuta HTML."""
+def _html_str_a_texto(html: str, limite: int = 10000) -> str:
+    """Extrae texto plano de un string HTML (cuerpo de mail o minuta)."""
     from bs4 import BeautifulSoup
     try:
-        contenido = Path(ruta).read_text(encoding="utf-8")
-        soup = BeautifulSoup(contenido, "html.parser")
+        soup = BeautifulSoup(html, "html.parser")
         return soup.get_text(separator="\n", strip=True)[:limite]
+    except Exception:
+        return html[:limite]
+
+
+def _html_a_texto(ruta: str, limite: int = 3000) -> str:
+    """Extrae texto plano de una minuta HTML (archivo)."""
+    try:
+        contenido = Path(ruta).read_text(encoding="utf-8")
     except Exception as e:
         log.warning(f"[Digest] No se pudo leer minuta {Path(ruta).name}: {e}")
         return ""
+    return _html_str_a_texto(contenido, limite)
 
 
 def leer_reuniones_recientes(proyecto: str, desde: datetime, maximo: int = 5) -> str:
