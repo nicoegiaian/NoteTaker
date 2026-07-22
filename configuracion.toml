@@ -70,6 +70,8 @@ asuntos_ruido = [
     "notificación de reenvío de reunión",
     "notificacion de reenvio de reunion",
     "aceptada:",
+    "aceptado:",
+    "ha compartido",
     "rechazada:",
     "provisional:",
     "reunión cancelada",
