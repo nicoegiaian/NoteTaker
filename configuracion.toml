@@ -85,3 +85,9 @@ asuntos_ruido = [
 ]
 # Marcadores donde arranca la cita del hilo anterior (se corta ahí).
 marcadores_cita = ["\nDe:", "\nFrom:", "-----Mensaje original-----", "-----Original Message-----"]
+
+# ── Memoria histórica (digest diario) ───────────────────────
+[memoria]
+# Cuántos digests diarios previos se le pasan al razonamiento para detectar
+# tendencias y estancamientos ("esto se viene arrastrando X días").
+digests_historicos = 14

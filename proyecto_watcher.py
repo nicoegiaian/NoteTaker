@@ -20,6 +20,7 @@ from config import (
     PRECIOS_USD as _PRECIOS_USD,
     ASUNTOS_RUIDO as _ASUNTOS_RUIDO,
     MARCADORES_CITA as _MARCADORES_CITA,
+    DIGESTS_HISTORICOS,
 )
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -633,6 +634,43 @@ def _cutoff_reuniones() -> datetime:
         return datetime.now() - timedelta(days=3)
 
 
+def leer_digests_recientes(proyecto: str, n: int = DIGESTS_HISTORICOS) -> str:
+    """Junta los últimos `n` digests diarios del proyecto (de Novedades), del más
+    viejo al más nuevo, para que el razonamiento detecte tendencias y
+    estancamientos. Excluye el digest de hoy (aún no escrito, o de un reintento).
+    Es solo contexto histórico: NO dispara el digest por sí mismo."""
+    carpeta = Path(NOVEDADES_FOLDER)
+    if n <= 0 or not carpeta.exists():
+        return ""
+
+    sufijo = "_digest_diario.txt"
+    hoy = date.today().strftime("%Y%m%d")
+    prefijo = f"{proyecto}_"
+
+    # El timestamp va en el nombre (AAAAMMDD_HHMMSS), así que el orden alfabético
+    # equivale al cronológico.
+    archivos = sorted(carpeta.glob(f"{prefijo}*{sufijo}"))
+    archivos = [f for f in archivos if f.name[len(prefijo):len(prefijo) + 8] != hoy]
+    archivos = archivos[-n:]  # los n más recientes, en orden cronológico
+
+    partes = []
+    for f in archivos:
+        try:
+            texto = f.read_text(encoding="utf-8").strip()
+        except Exception:
+            continue
+        if not texto:
+            continue
+        fecha_str = f.name[len(prefijo):len(prefijo) + 8]
+        try:
+            fecha = datetime.strptime(fecha_str, "%Y%m%d").strftime("%d/%m/%Y")
+        except Exception:
+            fecha = fecha_str
+        partes.append(f"--- DIGEST {fecha} ---\n{texto}")
+
+    return "\n\n".join(partes)
+
+
 # ─── DIGEST ───────────────────────────────────────────────
 def digest_proyecto(proyecto: str, items: list, cutoff_reuniones: datetime):
     """Genera el digest diario unificado del proyecto: mails + reuniones + archivos."""
@@ -672,6 +710,9 @@ def digest_proyecto(proyecto: str, items: list, cutoff_reuniones: datetime):
 
     contexto_actual = cargar_contexto(proyecto)
 
+    # Histórico: últimos N digests diarios (solo contexto para detectar tendencias).
+    texto_historico = leer_digests_recientes(proyecto, DIGESTS_HISTORICOS)
+
     prompt_path = Path(CONTEXTO_FOLDER) / "Prompts" / "prompt_digest_diario.txt"
     try:
         prompt_template = prompt_path.read_text(encoding="utf-8")
@@ -686,7 +727,8 @@ def digest_proyecto(proyecto: str, items: list, cutoff_reuniones: datetime):
               .replace("{{MATRIZ}}",     texto_matriz or "Sin matriz integrada para este proyecto.")
               .replace("{{MAILS}}",      texto_mails or "Sin mails.")
               .replace("{{REUNIONES}}",  texto_reuniones or "Sin reuniones.")
-              .replace("{{ARCHIVOS}}",   texto_archivos))
+              .replace("{{ARCHIVOS}}",   texto_archivos)
+              .replace("{{HISTORICO}}",  texto_historico or "Sin digests previos."))
 
     resultado = llamar_claude(prompt, modelo=MODELO_DIGEST, sin_pensar=True)
     texto_completo = resultado["texto"]

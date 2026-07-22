@@ -48,6 +48,9 @@ MATRIZ_PATHS   = _cfg["matriz_paths"]
 ASUNTOS_RUIDO   = tuple(_cfg["filtros"]["asuntos_ruido"])
 MARCADORES_CITA = tuple(_cfg["filtros"]["marcadores_cita"])
 
+# ── Memoria histórica ────────────────────────────────────
+DIGESTS_HISTORICOS = _cfg.get("memoria", {}).get("digests_historicos", 14)
+
 # ============================================================
 #  PLANNER — NO mover a configuracion.toml.
 #  Este bloque lo ESCRIBE automáticamente planner_client.py (por regex)
