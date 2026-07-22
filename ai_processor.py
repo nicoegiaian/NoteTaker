@@ -34,8 +34,8 @@ def detectar_proyecto(nombre_archivo: str) -> str:
 
 def _leer_prompt_notas() -> str:
     """Lee el prompt de clasificación y generación de notas desde el archivo externo."""
-    from proyecto_watcher import CONTEXTO_FOLDER
-    ruta = Path(CONTEXTO_FOLDER) / "Prompts" / "prompt_notas_reunion.txt"
+    from config import PROMPTS_FOLDER
+    ruta = PROMPTS_FOLDER / "prompt_notas_reunion.txt"
     try:
         return ruta.read_text(encoding="utf-8")
     except Exception as e:

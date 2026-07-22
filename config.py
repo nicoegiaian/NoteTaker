@@ -51,6 +51,11 @@ MARCADORES_CITA = tuple(_cfg["filtros"]["marcadores_cita"])
 # ── Memoria histórica ────────────────────────────────────
 DIGESTS_HISTORICOS = _cfg.get("memoria", {}).get("digests_historicos", 14)
 
+# ── Prompts ──────────────────────────────────────────────
+# Los prompts se versionan en el repo (carpeta prompts/, junto al código),
+# no en PM Agent. Ruta relativa al repo para que funcione en cualquier máquina.
+PROMPTS_FOLDER = Path(__file__).with_name("prompts")
+
 # ============================================================
 #  PLANNER — NO mover a configuracion.toml.
 #  Este bloque lo ESCRIBE automáticamente planner_client.py (por regex)

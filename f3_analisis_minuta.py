@@ -14,7 +14,7 @@ from pathlib import Path
 from datetime import datetime
 from bs4 import BeautifulSoup
 
-from config import PROYECTOS
+from config import PROYECTOS, PROMPTS_FOLDER
 from proyecto_watcher import (
     cargar_contexto, guardar_contexto, llamar_claude,
     registrar_tokens, escribir_novedad, CONTEXTO_FOLDER
@@ -162,7 +162,7 @@ def analizar_minuta_cruzada(notas: dict, nombre_archivo: str, ruta_html: str, ou
         texto_tareas = "Sin tareas abiertas en Planner."
 
     # Leer prompt desde archivo
-    prompt_path = Path(CONTEXTO_FOLDER) / "Prompts" / "prompt_f3_analisis.txt"
+    prompt_path = PROMPTS_FOLDER / "prompt_f3_analisis.txt"
     try:
         prompt_template = prompt_path.read_text(encoding="utf-8")
     except Exception as e:

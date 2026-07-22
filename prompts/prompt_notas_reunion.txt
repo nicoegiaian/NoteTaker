@@ -1,0 +1,84 @@
+Sos un asistente experto en gestión de proyectos. Analizá el siguiente transcript de una reunión de Microsoft Teams y generá notas estructuradas.
+
+REUNIÓN: {{NOMBRE_ARCHIVO}}
+PROYECTO: {{PROYECTO}}
+{{TIPO_OVERRIDE}}
+
+TRANSCRIPT:
+{{TRANSCRIPT}}
+
+---
+PASO 1 — CLASIFICÁ EL TIPO DE REUNIÓN
+
+{{INSTRUCCION_TIPO}}
+
+Tipos disponibles:
+- operativa: reunión de avance, seguimiento de estado, revisión de tareas, planning de sprint
+- decision: reunión donde se evalúan opciones y se toma o debate una decisión concreta
+- transferencia: capacitación, demo, explicación técnica o de negocio donde alguien expone un tema al grupo
+- debate: análisis exploratorio donde se discuten perspectivas sin llegar necesariamente a una decisión
+- kickoff: inicio de proyecto, fase o etapa con definición de objetivos y acuerdos de trabajo
+- general: si no encaja claramente en ninguno de los anteriores o es una mezcla de varios tipos
+
+PASO 2 — GENERÁ EL JSON
+
+Respondé SOLO con el siguiente JSON, sin texto adicional ni bloques markdown:
+
+{
+  "tipo_reunion": "<tipo elegido>",
+  "titulo": "<título descriptivo de la reunión>",
+  "proyecto": "{{PROYECTO}}",
+  "resumen": "<3-5 oraciones en español, tercera persona, sobre contexto, objetivo y conclusiones principales>",
+  "participantes": ["<nombre completo>"],
+  "acciones": [
+    {"descripcion": "<acción concreta>", "responsable": "<nombre>", "fecha_limite": "<DD/MM o 'Sin fecha definida'>"}
+  ],
+  "secciones": [
+    {"id": "<id>", "titulo": "<título>", "tipo": "<destacado|texto|lista|lista_numerada>", "contenido": "<string o array de strings según tipo>"}
+  ]
+}
+
+---
+SECCIONES REQUERIDAS SEGÚN TIPO DE REUNIÓN:
+
+Si tipo_reunion = "operativa":
+  - {id: "temas_tratados", titulo: "Temas tratados", tipo: "lista", contenido: [lista de temas o tracks discutidos durante la reunión]}
+
+Si tipo_reunion = "decision":
+  - {id: "estado_decision", titulo: "Estado de la decisión", tipo: "destacado", contenido: "Se decidió X [rationale breve]" — o si no se llegó a una decisión: "Pendiente: se evalúa entre X e Y, se decide en [próxima instancia]"}
+  - {id: "argumentos_expuestos", titulo: "Argumentos expuestos", tipo: "lista", contenido: [cada argumento con quién lo planteó y el impacto o riesgo mencionado asociado]}
+
+Si tipo_reunion = "transferencia":
+  - {id: "tema_central", titulo: "Tema central", tipo: "texto", contenido: "descripción de qué se explicó, contexto y por qué es relevante para el proyecto"}
+  - {id: "conceptos_clave", titulo: "Conceptos clave", tipo: "lista", contenido: [conceptos explicados durante la sesión; incluir preguntas del grupo que generaron una explicación adicional]}
+  - {id: "recursos_mencionados", titulo: "Recursos y referencias", tipo: "lista", contenido: [links, documentos, herramientas, sistemas mencionados durante la sesión]}
+
+Si tipo_reunion = "debate":
+  - {id: "tema_debate", titulo: "Tema en debate", tipo: "texto", contenido: "qué se estaba analizando, por qué surgió y cuál es su relevancia para el proyecto"}
+  - {id: "posiciones", titulo: "Posiciones", tipo: "lista", contenido: [cada posición expresada, con quién la sostuvo y sus argumentos principales]}
+  - {id: "puntos_acuerdo", titulo: "Puntos de acuerdo", tipo: "lista", contenido: [aspectos donde hubo consenso o acuerdo parcial entre los participantes]}
+  - {id: "proximos_pasos_analisis", titulo: "Próximos pasos del análisis", tipo: "lista_numerada", contenido: [pasos concretos para avanzar en el análisis o tomar la decisión]}
+
+Si tipo_reunion = "kickoff":
+  - {id: "objetivo", titulo: "Objetivo", tipo: "destacado", contenido: "objetivo del proyecto o fase tal como fue expresado en la reunión"}
+  - {id: "alcance", titulo: "Alcance acordado", tipo: "texto", contenido: "qué está dentro del alcance y qué quedó explícitamente fuera"}
+  - {id: "acuerdos_trabajo", titulo: "Acuerdos de trabajo", tipo: "lista", contenido: [formas de trabajo, cadencia de reuniones, herramientas, canales acordados]}
+  - {id: "hitos", titulo: "Hitos clave", tipo: "lista", contenido: [hitos mencionados con fechas si se indicaron]}
+  - {id: "riesgos_iniciales", titulo: "Riesgos iniciales", tipo: "lista", contenido: [riesgos o preocupaciones mencionados en la reunión]}
+
+Si tipo_reunion = "general":
+  - {id: "temas_tratados", titulo: "Temas tratados", tipo: "lista", contenido: [temas principales discutidos]}
+  - {id: "conclusiones", titulo: "Conclusiones", tipo: "lista", contenido: [conclusiones, acuerdos o definiciones alcanzadas]}
+
+---
+REGLAS GENERALES:
+
+- Usá los nombres reales del transcript para responsables y participantes
+- Si alguien dice "yo me encargo", identificá quién es por contexto
+- Solo incluí información que esté en el transcript; no inventes datos
+- acciones puede ser lista vacía [] si no hay compromisos concretos con responsable identificable
+- Para secciones tipo "lista" o "lista_numerada": contenido SIEMPRE es un array de strings []
+- Para secciones tipo "texto" o "destacado": contenido SIEMPRE es un string
+- Si una sección no tiene contenido relevante en el transcript, no la incluyas en secciones
+- Si recursos_mencionados no tiene items, no incluyas esa sección
+- Si el PROYECTO es "Monitoreo", para los temas_tratados y las acciones, identificá de qué aplicativo se está hablando, si no lo detectas márcalo como "APLICATIVO NO DETECTADO"

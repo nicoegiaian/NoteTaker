@@ -21,6 +21,7 @@ from config import (
     ASUNTOS_RUIDO as _ASUNTOS_RUIDO,
     MARCADORES_CITA as _MARCADORES_CITA,
     DIGESTS_HISTORICOS,
+    PROMPTS_FOLDER,
 )
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -713,7 +714,7 @@ def digest_proyecto(proyecto: str, items: list, cutoff_reuniones: datetime):
     # Histórico: últimos N digests diarios (solo contexto para detectar tendencias).
     texto_historico = leer_digests_recientes(proyecto, DIGESTS_HISTORICOS)
 
-    prompt_path = Path(CONTEXTO_FOLDER) / "Prompts" / "prompt_digest_diario.txt"
+    prompt_path = PROMPTS_FOLDER / "prompt_digest_diario.txt"
     try:
         prompt_template = prompt_path.read_text(encoding="utf-8")
     except Exception as e:
