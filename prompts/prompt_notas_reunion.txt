@@ -81,4 +81,7 @@ REGLAS GENERALES:
 - Para secciones tipo "texto" o "destacado": contenido SIEMPRE es un string
 - Si una sección no tiene contenido relevante en el transcript, no la incluyas en secciones
 - Si recursos_mencionados no tiene items, no incluyas esa sección
-- Si el PROYECTO es "Monitoreo", para los temas_tratados y las acciones, identificá de qué aplicativo se está hablando, si no lo detectas márcalo como "APLICATIVO NO DETECTADO"
+- Si el PROYECTO es "Monitoreo", cada acción corresponde a un aplicativo a monitorear. En el campo "descripcion" de CADA acción, antepené el nombre del aplicativo en MAYÚSCULAS entre corchetes, seguido de dos puntos y un espacio, y luego la acción. Determiná el aplicativo por el contexto del transcript. Si no podés determinarlo, usá exactamente "[APP no detectada]".
+  Formato: "[APLICATIVO]: <acción>".
+  Ejemplos: "[MOTOR DE REGLAS]: Habilitar firewall al server de BD" · "[APP no detectada]: Revisar los logs del último incidente".
+  Aplicá la misma convención de prefijo entre corchetes (el aplicativo en MAYÚSCULAS, o "[APP no detectada]") al inicio de cada ítem de "temas_tratados".
