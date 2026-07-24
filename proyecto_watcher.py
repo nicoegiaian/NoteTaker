@@ -21,6 +21,7 @@ from config import (
     ASUNTOS_RUIDO as _ASUNTOS_RUIDO,
     MARCADORES_CITA as _MARCADORES_CITA,
     DIGESTS_HISTORICOS,
+    DECISIONES_MAX, BITACORA_MAX,
     PROMPTS_FOLDER,
 )
 
@@ -200,97 +201,116 @@ def cargar_contexto(proyecto: str) -> str:
     return "Sin contexto previo disponible."
 
 
+# Secciones del agente (en el orden en que van en la ficha) y del PM.
+_SECCIONES_AGENTE = [
+    "=== ESTADO ACTUAL ===",
+    "=== DECISIONES TOMADAS ===",
+    "=== BITÁCORA ===",
+]
+_SECCIONES_PROTEGIDAS = [
+    "=== DESCRIPCIÓN Y ALCANCE ===",
+    "=== EQUIPO CLAVE ===",
+    "=== HITOS VIGENTES ===",
+    "=== RIESGOS IDENTIFICADOS ===",
+]
+_VACIOS_LOG = {"", "sin novedades", "sin novedades.", "sin cambios", "sin cambios."}
+
+
+def _extraer_seccion(texto: str, header: str) -> str:
+    """Cuerpo de `header` en `texto`, hasta la próxima sección del agente o el
+    fin. "" si la sección no está."""
+    pos = texto.find(header)
+    if pos == -1:
+        return ""
+    inicio = pos + len(header)
+    fin = len(texto)
+    for otro in _SECCIONES_AGENTE:
+        if otro == header:
+            continue
+        p = texto.find(otro, inicio)
+        if p != -1 and p < fin:
+            fin = p
+    return texto[inicio:fin].strip()
+
+
+def _clave_log(linea: str) -> str:
+    """Clave de dedup: el texto después de la fecha ('DD/MM · texto'), normalizado."""
+    if "·" in linea:
+        linea = linea.split("·", 1)[1]
+    return " ".join(linea.split()).lower()
+
+
+def _merge_log(existente: str, delta: str, tope: int) -> str:
+    """Log append-only: agrega las líneas nuevas de `delta` a `existente`,
+    deduplicando por texto y conservando las últimas `tope`."""
+    def lineas(txt):
+        out = []
+        for l in txt.splitlines():
+            l = l.strip().lstrip("-•").strip()
+            if l and l.lower() not in _VACIOS_LOG:
+                out.append(l)
+        return out
+
+    resultado = lineas(existente)
+    vistas = {_clave_log(l) for l in resultado}
+    for l in lineas(delta):
+        k = _clave_log(l)
+        if k and k not in vistas:
+            resultado.append(l)
+            vistas.add(k)
+    if tope and len(resultado) > tope:
+        resultado = resultado[-tope:]
+    return "\n".join(resultado)
+
+
 def guardar_contexto(proyecto: str, contenido_agente: str):
     """
-    Actualiza solo las secciones del agente en el contexto del proyecto.
-    Nunca toca las secciones escritas por el PM:
-    DESCRIPCIÓN Y ALCANCE, EQUIPO CLAVE, HITOS VIGENTES, RIESGOS IDENTIFICADOS.
+    Actualiza solo las secciones del agente en la ficha del proyecto; nunca toca
+    las del PM (DESCRIPCIÓN, EQUIPO, HITOS, RIESGOS). ESTADO ACTUAL se reemplaza
+    (foto); DECISIONES TOMADAS y BITÁCORA se acumulan (append-only con dedup y tope).
     """
     ruta = Path(CONTEXTO_FOLDER) / f"contexto_{proyecto}.txt"
-    
-    # Secciones protegidas — escritas por el PM
-    SECCIONES_PROTEGIDAS = [
-        "=== DESCRIPCIÓN Y ALCANCE ===",
-        "=== EQUIPO CLAVE ===",
-        "=== HITOS VIGENTES ===",
-        "=== RIESGOS IDENTIFICADOS ===",
-    ]
-    
-    # Secciones del agente — se actualizan automáticamente
-    SECCIONES_AGENTE = [
-        "=== ESTADO ACTUAL ===",
-        "=== DECISIONES TOMADAS ===",
-    ]
+    contenido_actual = ruta.read_text(encoding="utf-8") if ruta.exists() else ""
 
-    if ruta.exists():
-        contenido_actual = ruta.read_text(encoding="utf-8")
-    else:
-        contenido_actual = ""
-
-    # Verificar si el archivo tiene la estructura esperada
-    tiene_estructura = any(s in contenido_actual for s in SECCIONES_PROTEGIDAS)
-
+    tiene_estructura = any(s in contenido_actual for s in _SECCIONES_PROTEGIDAS)
     if not tiene_estructura:
-        # Archivo sin estructura → escribir todo (comportamiento anterior)
+        # Ficha sin estructura → escribir lo que vino (creación inicial).
         ruta.write_text(contenido_agente, encoding="utf-8")
         log.info(f"Contexto creado: {ruta.name}")
         return
 
-    # Extraer la parte protegida (todo hasta la primera sección del agente)
-    primera_seccion_agente = None
+    # Parte protegida: todo hasta la primera sección del agente.
     pos_corte = len(contenido_actual)
-    for seccion in SECCIONES_AGENTE:
-        pos = contenido_actual.find(seccion)
-        if pos != -1 and pos < pos_corte:
-            pos_corte = pos
-            primera_seccion_agente = seccion
-
+    for seccion in _SECCIONES_AGENTE:
+        p = contenido_actual.find(seccion)
+        if p != -1 and p < pos_corte:
+            pos_corte = p
     parte_protegida = contenido_actual[:pos_corte].rstrip()
 
-    # Parsear el contenido nuevo del agente para extraer estado y decisiones
-    estado_nuevo = ""
-    decisiones_nuevas = ""
+    # ESTADO ACTUAL: foto (se reemplaza; si el agente no lo trajo, se preserva).
+    estado_final = (_extraer_seccion(contenido_agente, "=== ESTADO ACTUAL ===")
+                    or _extraer_seccion(contenido_actual, "=== ESTADO ACTUAL ==="))
 
-    if "=== ESTADO ACTUAL ===" in contenido_agente:
-        partes = contenido_agente.split("=== ESTADO ACTUAL ===")
-        if len(partes) > 1:
-            resto = partes[1]
-            if "=== DECISIONES TOMADAS ===" in resto:
-                estado_nuevo = resto.split("=== DECISIONES TOMADAS ===")[0].strip()
-            else:
-                estado_nuevo = resto.strip()
+    # DECISIONES y BITÁCORA: se acumulan (append-only).
+    decisiones_final = _merge_log(
+        _extraer_seccion(contenido_actual,  "=== DECISIONES TOMADAS ==="),
+        _extraer_seccion(contenido_agente,  "=== DECISIONES TOMADAS ==="),
+        DECISIONES_MAX,
+    )
+    bitacora_final = _merge_log(
+        _extraer_seccion(contenido_actual,  "=== BITÁCORA ==="),
+        _extraer_seccion(contenido_agente,  "=== BITÁCORA ==="),
+        BITACORA_MAX,
+    )
 
-    if "=== DECISIONES TOMADAS ===" in contenido_agente:
-        partes = contenido_agente.split("=== DECISIONES TOMADAS ===")
-        if len(partes) > 1:
-            decisiones_nuevas = partes[1].strip()
-
-    # Si el agente no devolvió secciones estructuradas, preservar las existentes
-    if not estado_nuevo:
-        if "=== ESTADO ACTUAL ===" in contenido_actual:
-            partes = contenido_actual.split("=== ESTADO ACTUAL ===")
-            resto = partes[1] if len(partes) > 1 else ""
-            if "=== DECISIONES TOMADAS ===" in resto:
-                estado_nuevo = resto.split("=== DECISIONES TOMADAS ===")[0].strip()
-            else:
-                estado_nuevo = resto.strip()
-
-    if not decisiones_nuevas:
-        if "=== DECISIONES TOMADAS ===" in contenido_actual:
-            partes = contenido_actual.split("=== DECISIONES TOMADAS ===")
-            decisiones_nuevas = partes[1].strip() if len(partes) > 1 else ""
-
-    # Reconstruir el archivo completo
-    nuevo_contenido = f"""{parte_protegida}
-
-=== ESTADO ACTUAL ===
-{estado_nuevo}
-
-=== DECISIONES TOMADAS ===
-{decisiones_nuevas}
-"""
+    nuevo_contenido = (
+        f"{parte_protegida}\n\n"
+        f"=== ESTADO ACTUAL ===\n{estado_final}\n\n"
+        f"=== DECISIONES TOMADAS ===\n{decisiones_final}\n\n"
+        f"=== BITÁCORA ===\n{bitacora_final}\n"
+    )
     ruta.write_text(nuevo_contenido, encoding="utf-8")
-    log.info(f"Contexto actualizado (secciones protegidas intactas): {ruta.name}")
+    log.info(f"Contexto actualizado (decisiones/bitácora append-only): {ruta.name}")
 
 
 

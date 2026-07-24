@@ -63,10 +63,13 @@ Decisiones:
 - Detalle: [...] | Impacto: [...] | Justificación: [...] | Vínculo a riesgo: [R-xx si aplica]
 
 📌 CONTEXTO ACTUALIZADO DEL PROYECTO:
-Respondé con estas dos secciones exactas. Si no hay novedades escribí 'Sin novedades.':
+Respondé con estas TRES secciones exactas:
 
 === ESTADO ACTUAL ===
-[fase actual, qué está en curso, qué está bloqueado, próximos hitos inminentes]
+[Foto del estado de HOY: fase actual, qué está en curso, qué está bloqueado, próximos hitos inminentes. Esta sección se REEMPLAZA cada día; describí el estado completo actual.]
 
 === DECISIONES TOMADAS ===
-[solo decisiones ejecutivas (Impacto ≥ 6), formato "DD/MM · descripción"]
+[SOLO las decisiones ejecutivas NUEVAS de hoy (Impacto ≥ 6), una por línea, formato "DD/MM · descripción". NO repitas decisiones que ya figuran en el CONTEXTO DEL PROYECTO. Si no hubo decisiones nuevas, escribí 'Sin novedades.'. Esta sección se ACUMULA, no la reescribas entera.]
+
+=== BITÁCORA ===
+[SOLO los cambios notables de hoy en la trayectoria del proyecto: un hito que avanzó o se atrasó, un riesgo que cambió de estado, un bloqueo nuevo o resuelto. Una línea por cambio, formato "DD/MM · cambio". NO repitas lo ya registrado. Si no hubo cambios notables, escribí 'Sin cambios.'. Esta sección se ACUMULA.]

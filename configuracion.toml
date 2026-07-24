@@ -91,3 +91,7 @@ marcadores_cita = ["\nDe:", "\nFrom:", "-----Mensaje original-----", "-----Origi
 # Cuántos digests diarios previos se le pasan al razonamiento para detectar
 # tendencias y estancamientos ("esto se viene arrastrando X días").
 digests_historicos = 14
+# Tope de entradas acumuladas en la ficha (secciones append-only). Cuando se
+# supera, las entradas más viejas ruedan. Balancea trayectoria vs costo de tokens.
+decisiones_max = 50
+bitacora_max   = 60

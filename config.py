@@ -49,7 +49,10 @@ ASUNTOS_RUIDO   = tuple(_cfg["filtros"]["asuntos_ruido"])
 MARCADORES_CITA = tuple(_cfg["filtros"]["marcadores_cita"])
 
 # ── Memoria histórica ────────────────────────────────────
-DIGESTS_HISTORICOS = _cfg.get("memoria", {}).get("digests_historicos", 14)
+_memoria = _cfg.get("memoria", {})
+DIGESTS_HISTORICOS = _memoria.get("digests_historicos", 14)
+DECISIONES_MAX     = _memoria.get("decisiones_max", 50)
+BITACORA_MAX       = _memoria.get("bitacora_max", 60)
 
 # ── Prompts ──────────────────────────────────────────────
 # Los prompts se versionan en el repo (carpeta prompts/, junto al código),
