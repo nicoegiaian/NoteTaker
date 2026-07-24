@@ -31,7 +31,7 @@ Respondé SOLO con el siguiente JSON, sin texto adicional ni bloques markdown:
   "resumen": "<3-5 oraciones en español, tercera persona, sobre contexto, objetivo y conclusiones principales>",
   "participantes": ["<nombre completo>"],
   "acciones": [
-    {"descripcion": "<acción concreta>", "responsable": "<nombre>", "fecha_limite": "<DD/MM o 'Sin fecha definida'>"}
+    {"descripcion": "<acción concreta>", "responsable": "<nombre>", "fecha_limite": "<DD/MM o 'Sin fecha definida'>", "crear_en_planner": true}
   ],
   "secciones": [
     {"id": "<id>", "titulo": "<título>", "tipo": "<destacado|texto|lista|lista_numerada>", "contenido": "<string o array de strings según tipo>"}
@@ -77,6 +77,7 @@ REGLAS GENERALES:
 - Si alguien dice "yo me encargo", identificá quién es por contexto
 - Solo incluí información que esté en el transcript; no inventes datos
 - acciones puede ser lista vacía [] si no hay compromisos concretos con responsable identificable
+- "crear_en_planner": marcá true SOLO si la acción es un compromiso accionable concreto (algo que alguien va a hacer) Y tiene un responsable identificable (una persona concreta; puede ser el propio PM). Marcá false para menciones vagas ("habría que ver…"), temas a discutir sin dueño, información de contexto, cosas ya hechas o seguimiento genérico. Ante la duda, false. Igual incluí SIEMPRE la acción en la lista: el flag solo decide cuáles se crean como tarea en Planner; todas quedan en la minuta.
 - Para secciones tipo "lista" o "lista_numerada": contenido SIEMPRE es un array de strings []
 - Para secciones tipo "texto" o "destacado": contenido SIEMPRE es un string
 - Si una sección no tiene contenido relevante en el transcript, no la incluyas en secciones

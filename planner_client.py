@@ -351,6 +351,16 @@ def crear_tareas_en_planner(acciones: list, proyecto: str,
     if not acciones:
         return "No hay acciones para crear"
 
+    # Filtro selectivo (SEL): crear solo las acciones marcadas por el LLM.
+    # Si el campo falta (nota vieja), se crea igual por retrocompatibilidad.
+    total = len(acciones)
+    acciones = [a for a in acciones if a.get("crear_en_planner", True)]
+    omitidas = total - len(acciones)
+    if omitidas:
+        log.info(f"[Planner] {omitidas} de {total} acciones omitidas por baja confianza")
+    if not acciones:
+        return f"Sin tareas para crear ({omitidas} omitidas por baja confianza)"
+
     fecha_hoy = datetime.now().strftime("%d/%m")
     log.info(f"[Planner] Creando {len(acciones)} tareas en '{proyecto}'...")
 
@@ -380,6 +390,8 @@ def crear_tareas_en_planner(acciones: list, proyecto: str,
         resultado = f"{creadas} tareas creadas en '{proyecto}'"
     else:
         resultado = f"{creadas} creadas, {errores} con error en '{proyecto}'"
+    if omitidas:
+        resultado += f" ({omitidas} omitidas por baja confianza)"
 
     log.info(f"[Planner] {resultado}")
     return resultado
