@@ -4,6 +4,11 @@ REUNIÓN: {{NOMBRE_ARCHIVO}}
 PROYECTO: {{PROYECTO}}
 {{TIPO_OVERRIDE}}
 
+NOMBRES PROPIOS DEL PROYECTO (glosario canónico):
+{{GLOSARIO}}
+
+IMPORTANTE — Normalización de nombres propios: el TRANSCRIPT viene de una transcripción automática que suele escribir mal los nombres propios (aplicativos, sistemas, productos, personas). Usá SIEMPRE la forma canónica EXACTA del glosario de arriba. Si en el transcript aparece algo fonéticamente parecido a un término del glosario (ej: "Campdoctor" → "CamDoctor", "APICOR" → "Api-Core"), corregilo a la forma canónica en TODO el JSON (título, resumen, acciones, secciones). Si un nombre no está en el glosario, dejalo tal como aparece.
+
 TRANSCRIPT:
 {{TRANSCRIPT}}
 

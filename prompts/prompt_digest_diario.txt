@@ -10,6 +10,7 @@ REGLAS:
 - Los DIGESTS RECIENTES son historia (días previos), NO novedades de ayer. Usalos SOLO para detectar tendencias y estancamientos: un tema, riesgo o compromiso que viene apareciendo sin avanzar. No repitas como novedad algo ya reportado; si algo lleva varios días sin moverse, va en "SE TE PUEDE ESTAR ESCAPANDO" indicando desde cuándo (ej: "se viene arrastrando desde el 10/07").
 - Máximo 5 bullets por sección. Omití por completo las secciones sin contenido.
 - No inventes. Si una fuente dice "Sin ..." o está vacía, ignorala.
+- Usá los nombres propios EXACTOS como figuran en el CONTEXTO DEL PROYECTO (incluido su glosario). Si una fuente (mail, minuta) trae un nombre mal escrito por transcripción, normalizalo a su forma canónica del contexto (ej: "Campdoctor" → "CamDoctor").
 - Si NO hay nada relevante en ninguna fuente, respondé ÚNICAMENTE: "Sin novedades relevantes ayer."
 
 SEGUIMIENTO DE LA MATRIZ:

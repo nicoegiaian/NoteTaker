@@ -42,6 +42,27 @@ def _leer_prompt_notas() -> str:
         raise ValueError(f"No se pudo leer el prompt de notas ({ruta}): {e}")
 
 
+def _leer_glosario(proyecto: str) -> str:
+    """Extrae la sección GLOSARIO / NOMBRES PROPIOS de la ficha del proyecto, para
+    que la generación de notas normalice los nombres propios que la transcripción
+    automática suele traer mal. Devuelve "" si no hay glosario."""
+    from config import CONTEXTO_FOLDER
+    ruta = Path(CONTEXTO_FOLDER) / f"contexto_{proyecto}.txt"
+    if not ruta.exists():
+        return ""
+    try:
+        texto = ruta.read_text(encoding="utf-8")
+    except Exception:
+        return ""
+    header = "=== GLOSARIO / NOMBRES PROPIOS ==="
+    i = texto.find(header)
+    if i == -1:
+        return ""
+    resto = texto[i + len(header):]
+    fin = resto.find("\n=== ")
+    return (resto if fin == -1 else resto[:fin]).strip()
+
+
 def _llamar_claude_con_retry(
     url: str,
     headers: dict,
@@ -112,11 +133,13 @@ def generar_notas(transcript: str, nombre_archivo: str, tipo_forzado: str = None
         tipo_override = ""
         instruccion_tipo = "Analizá el transcript y elegí el tipo que mejor represente el espíritu de la reunión."
 
+    glosario = _leer_glosario(proyecto)
     prompt = prompt_template.replace("{{NOMBRE_ARCHIVO}}", nombre_archivo)
     prompt = prompt.replace("{{PROYECTO}}", proyecto)
     prompt = prompt.replace("{{TRANSCRIPT}}", transcript)
     prompt = prompt.replace("{{TIPO_OVERRIDE}}", tipo_override)
     prompt = prompt.replace("{{INSTRUCCION_TIPO}}", instruccion_tipo)
+    prompt = prompt.replace("{{GLOSARIO}}", glosario or "Sin glosario definido para este proyecto.")
 
     headers = {
         "x-api-key": api_key,

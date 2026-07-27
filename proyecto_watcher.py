@@ -212,8 +212,15 @@ _SECCIONES_PROTEGIDAS = [
     "=== EQUIPO CLAVE ===",
     "=== HITOS VIGENTES ===",
     "=== RIESGOS IDENTIFICADOS ===",
+    "=== GLOSARIO / NOMBRES PROPIOS ===",
 ]
-_VACIOS_LOG = {"", "sin novedades", "sin novedades.", "sin cambios", "sin cambios."}
+# Prefijos que indican "no hubo nada" (no son entradas reales del log).
+_PREFIJOS_VACIOS = ("sin nov", "sin cambio")
+
+
+def _es_vacio_log(linea: str) -> bool:
+    l = linea.strip().lower()
+    return not l or l.startswith(_PREFIJOS_VACIOS)
 
 
 def _extraer_seccion(texto: str, header: str) -> str:
@@ -247,7 +254,7 @@ def _merge_log(existente: str, delta: str, tope: int) -> str:
         out = []
         for l in txt.splitlines():
             l = l.strip().lstrip("-•").strip()
-            if l and l.lower() not in _VACIOS_LOG:
+            if l and not _es_vacio_log(l):
                 out.append(l)
         return out
 
