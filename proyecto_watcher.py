@@ -331,7 +331,9 @@ def llamar_claude(prompt: str, modelo: str = MODELO_DEFAULT, sin_pensar: bool = 
     }
     payload = {
         "model": modelo,
-        "max_tokens": 2500,
+        # 4096: el digest devuelve el briefing + ficha actualizada (ESTADO +
+        # DECISIONES + BITÁCORA); con 2500 se truncaba y corrompía la ficha.
+        "max_tokens": 4096,
         "messages": [{"role": "user", "content": prompt}],
     }
     # Sonnet 5 trae thinking adaptativo por defecto; lo desactivamos para el digest
