@@ -24,6 +24,7 @@ from config import (
     DECISIONES_MAX, BITACORA_MAX,
     PROMPTS_FOLDER,
 )
+from glosario import normalizar
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 log = logging.getLogger(__name__)
@@ -761,7 +762,10 @@ def digest_proyecto(proyecto: str, items: list, cutoff_reuniones: datetime):
               .replace("{{HISTORICO}}",  texto_historico or "Sin digests previos."))
 
     resultado = llamar_claude(prompt, modelo=MODELO_DIGEST, sin_pensar=True)
-    texto_completo = resultado["texto"]
+    # Normalizar nombres propios del glosario (determinístico): limpia el digest
+    # que va a Teams y lo que se escribe en la ficha, sin importar de qué fuente
+    # vino la forma mal escrita. Corta el loop de realimentación.
+    texto_completo = normalizar(resultado["texto"], proyecto)
 
     # Separar digest del contexto actualizado
     partes = texto_completo.split("📌 CONTEXTO ACTUALIZADO DEL PROYECTO:")
