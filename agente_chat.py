@@ -112,6 +112,15 @@ El usuario pregunta: "{pregunta}"
 ¿Cuáles de estos archivos son relevantes para responder?
 - Si la pregunta refiere a reuniones específicas (por nombre, fecha o tema concreto): \
 respondé los números entre corchetes separados por coma. Ejemplo: [1],[3],[7]
+- OJO CON LAS FECHAS: la fecha del índice es cuándo se GENERÓ la minuta/transcript, \
+casi siempre el mismo día de la reunión o 1–3 días DESPUÉS (nunca antes). Por eso, \
+cuando el usuario pide la reunión de una fecha, el archivo correcto puede figurar con \
+una fecha algo POSTERIOR. Incluí los archivos cuya fecha sea IGUAL o hasta 3 días MAYOR \
+a la fecha pedida. EJEMPLO CONCRETO: si el usuario pide "la reunión del 11 de agosto" y \
+la minuta más cercana del mismo tema figura como "2026-08-12", ES ESA — INCLUILA \
+(se generó al día siguiente). Ante la duda con la fecha, incluí de más.
+- Matcheá también por TEMA y NOMBRE del archivo, no solo por fecha: si un archivo \
+coincide por tema aunque la fecha no calce exacto, incluilo.
 - Si la pregunta es general y aplica buscar en las más recientes: respondé RECIENTES
 - Si ningún archivo parece relevante: respondé NINGUNO
 
