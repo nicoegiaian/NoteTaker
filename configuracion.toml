@@ -86,6 +86,17 @@ asuntos_ruido = [
 # Marcadores donde arranca la cita del hilo anterior (se corta ahí).
 marcadores_cita = ["\nDe:", "\nFrom:", "-----Mensaje original-----", "-----Original Message-----"]
 
+# ── Roadmaps (cronograma del gantt exportado a HTML) ────────
+# Por proyecto, opcional: carpeta donde el PM deja el export HTML del gantt
+# (MS Project). El agente toma el más reciente y destila el cronograma por
+# módulo/fase para validar la actividad contra el calendario. El proyecto que
+# no figure acá sigue usando los HITOS de su ficha.
+[roadmaps]
+max_profundidad = 5   # hasta qué nivel WBS incluir (módulo=3, fase=4, subfase=5)
+
+[roadmaps.carpetas]
+"Programa Salesforce" = 'C:\Users\degiaian\OneDrive - ASE Conecta\Documentos\Proyectos\Salesforce\Roadmap'
+
 # ── Memoria histórica (digest diario) ───────────────────────
 [memoria]
 # Cuántos digests diarios previos se le pasan al razonamiento para detectar

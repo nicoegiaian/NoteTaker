@@ -54,6 +54,11 @@ DIGESTS_HISTORICOS = _memoria.get("digests_historicos", 14)
 DECISIONES_MAX     = _memoria.get("decisiones_max", 50)
 BITACORA_MAX       = _memoria.get("bitacora_max", 60)
 
+# ── Roadmaps (cronograma del gantt) ──────────────────────
+_roadmaps = _cfg.get("roadmaps", {})
+ROADMAPS          = _roadmaps.get("carpetas", {})      # proyecto → carpeta del export HTML
+ROADMAP_MAX_DEPTH = _roadmaps.get("max_profundidad", 5)
+
 # ── Prompts ──────────────────────────────────────────────
 # Los prompts se versionan en el repo (carpeta prompts/, junto al código),
 # no en PM Agent. Ruta relativa al repo para que funcione en cualquier máquina.

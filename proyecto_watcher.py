@@ -25,6 +25,7 @@ from config import (
     PROMPTS_FOLDER,
 )
 from glosario import normalizar
+from roadmap import leer_cronograma
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 log = logging.getLogger(__name__)
@@ -744,6 +745,9 @@ def digest_proyecto(proyecto: str, items: list, cutoff_reuniones: datetime):
     # Histórico: últimos N digests diarios (solo contexto para detectar tendencias).
     texto_historico = leer_digests_recientes(proyecto, DIGESTS_HISTORICOS)
 
+    # Cronograma del gantt (autoridad del calendario) — solo proyectos con roadmap.
+    texto_cronograma = leer_cronograma(proyecto)
+
     prompt_path = PROMPTS_FOLDER / "prompt_digest_diario.txt"
     try:
         prompt_template = prompt_path.read_text(encoding="utf-8")
@@ -759,7 +763,8 @@ def digest_proyecto(proyecto: str, items: list, cutoff_reuniones: datetime):
               .replace("{{MAILS}}",      texto_mails or "Sin mails.")
               .replace("{{REUNIONES}}",  texto_reuniones or "Sin reuniones.")
               .replace("{{ARCHIVOS}}",   texto_archivos)
-              .replace("{{HISTORICO}}",  texto_historico or "Sin digests previos."))
+              .replace("{{HISTORICO}}",  texto_historico or "Sin digests previos.")
+              .replace("{{CRONOGRAMA}}", texto_cronograma or "Sin cronograma cargado; usá los HITOS de la ficha."))
 
     resultado = llamar_claude(prompt, modelo=MODELO_DIGEST, sin_pensar=True)
     # Normalizar nombres propios del glosario (determinístico): limpia el digest
