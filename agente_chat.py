@@ -6,6 +6,8 @@ GET  /           → UI del chat
 GET  /proyectos  → lista de proyectos disponibles
 POST /chat       → consulta al agente (two-pass: selección + respuesta)
 POST /crear-tareas → crear tareas en Planner (compatibilidad con HTMLs existentes)
+POST /reprocesar   → reprocesa un transcript forzando el tipo de reunión
+POST /enviar-mail  → guarda ediciones de una minuta y abre el borrador en Outlook
 """
 
 import os
@@ -945,6 +947,40 @@ class ChatHandler(BaseHTTPRequestHandler):
 
             except Exception as e:
                 log.error(f"[Reprocesar] Error: {e}")
+                self._json(500, {"ok": False, "mensaje": str(e)})
+
+        elif self.path == "/enviar-mail":
+            notas          = body.get("notas") or {}
+            nombre_archivo = body.get("nombre_archivo", "").strip()
+            ruta_html      = body.get("ruta_html", "").strip()
+
+            if not notas or not ruta_html:
+                self._json(400, {"ok": False, "mensaje": "Faltan notas o ruta_html"})
+                return
+
+            try:
+                from output_generator import regenerar_html, generar_html_email
+
+                # 1) Reescribe el .html guardado con las ediciones — queda como
+                #    fuente única de verdad, igual a lo que se manda por mail.
+                regenerar_html(notas, nombre_archivo or Path(ruta_html).name, ruta_html)
+
+                # 2) Arma el HTML "email-safe" y abre el borrador en Outlook
+                #    (Display, no Send — el envío final lo hace el usuario).
+                email_html = generar_html_email(notas)
+                asunto     = f"{notas.get('titulo', 'Minuta')} — {notas.get('proyecto', '')}".strip(" —")
+
+                import win32com.client
+                outlook = win32com.client.Dispatch("Outlook.Application")
+                mail = outlook.CreateItem(0)  # olMailItem
+                mail.Subject  = asunto
+                mail.HTMLBody = email_html
+                mail.Display()
+
+                self._json(200, {"ok": True, "mensaje": "Borrador abierto en Outlook"})
+
+            except Exception as e:
+                log.error(f"[EnviarMail] Error: {e}")
                 self._json(500, {"ok": False, "mensaje": str(e)})
 
         else:
