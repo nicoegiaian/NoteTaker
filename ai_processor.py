@@ -11,6 +11,7 @@ import logging
 import requests
 import urllib3
 from pathlib import Path
+from datetime import datetime
 from config import PROYECTOS, PROYECTO_DESCONOCIDO
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -115,8 +116,10 @@ def generar_notas(transcript: str, nombre_archivo: str, tipo_forzado: str = None
         tipo_override = ""
         instruccion_tipo = "Analizá el transcript y elegí el tipo que mejor represente el espíritu de la reunión."
 
-    glosario = leer_glosario(proyecto)
+    glosario  = leer_glosario(proyecto)
+    fecha_hoy = datetime.now().strftime("%d/%m/%Y")
     prompt = prompt_template.replace("{{NOMBRE_ARCHIVO}}", nombre_archivo)
+    prompt = prompt.replace("{{FECHA_HOY}}", fecha_hoy)
     prompt = prompt.replace("{{PROYECTO}}", proyecto)
     prompt = prompt.replace("{{TRANSCRIPT}}", transcript)
     prompt = prompt.replace("{{TIPO_OVERRIDE}}", tipo_override)
@@ -144,6 +147,14 @@ def generar_notas(transcript: str, nombre_archivo: str, tipo_forzado: str = None
     uso = respuesta_json.get("usage", {})
     log.info(f"   Tokens usados - entrada: {uso.get('input_tokens', '?')}, "
              f"salida: {uso.get('output_tokens', '?')}")
+
+    # Un corte por max_tokens deja el JSON incompleto; json_repair lo cierra igual
+    # y la minuta sale con la ultima seccion mutilada sin que nadie se entere.
+    if respuesta_json.get("stop_reason") == "max_tokens":
+        log.warning(
+            f"   ATENCION: la respuesta se corto por max_tokens ({payload['max_tokens']}). "
+            f"La minuta puede tener la ultima seccion incompleta."
+        )
 
     try:
         texto = respuesta_json["content"][0]["text"].strip()
