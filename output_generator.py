@@ -339,9 +339,15 @@ function copiarContenido(btn) {{
   }}, 4000);
 }}
 
+// Texto de un chip SIN el botón de borrar (× ) que se agrega en modo edición.
+function textoChip(chip) {{
+  const nodo = chip.childNodes[0];
+  return (nodo ? nodo.textContent : chip.textContent).trim();
+}}
+
 function copiarParticipantes(btn) {{
   const chips = btn.closest('.section').querySelectorAll('.chip');
-  const texto = Array.from(chips).map(c => c.textContent.trim()).join('; ');
+  const texto = Array.from(chips).map(textoChip).filter(Boolean).join('; ');
   navigator.clipboard.writeText(texto).then(() => {{
     const orig = btn.textContent;
     btn.textContent = '✅ Copiado';
@@ -385,9 +391,7 @@ function extraerNotas() {{
 
   const chipsContainer = card.querySelector('.chips-container');
   notas.participantes = chipsContainer
-    ? Array.from(chipsContainer.querySelectorAll('.chip'))
-        .map(c => (c.childNodes[0] ? c.childNodes[0].textContent : c.textContent).trim())
-        .filter(Boolean)
+    ? Array.from(chipsContainer.querySelectorAll('.chip')).map(textoChip).filter(Boolean)
     : [];
 
   card.querySelectorAll('.section[data-tipo]').forEach(sec => {{
@@ -424,6 +428,32 @@ function extraerNotas() {{
   return notas;
 }}
 
+// Copia HTML con formato al portapapeles: lo inserta fuera de pantalla, lo
+// selecciona y usa execCommand('copy') — así Outlook lo pega como HTML, no
+// como texto plano. Mismo mecanismo que ya usa el botón de copiar para Loop.
+function copiarHtmlAlPortapapeles(html) {{
+  const cont = document.createElement('div');
+  cont.innerHTML = html;
+  cont.setAttribute('contenteditable', 'true');
+  cont.style.position = 'fixed';
+  cont.style.left     = '-99999px';
+  cont.style.top      = '0';
+  document.body.appendChild(cont);
+
+  const range = document.createRange();
+  range.selectNodeContents(cont);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+
+  let ok = false;
+  try {{ ok = document.execCommand('copy'); }} catch (e) {{ ok = false; }}
+
+  sel.removeAllRanges();
+  cont.remove();
+  return ok;
+}}
+
 // ── Enviar por mail (abre borrador en Outlook con formato "email-safe") ──────
 async function enviarPorMail(btn) {{
   const notas          = extraerNotas();
@@ -432,8 +462,9 @@ async function enviarPorMail(btn) {{
   const rutaHtml       = document.querySelector('.card').getAttribute('data-ruta-html');
 
   const textoOriginal = btn.textContent;
-  btn.textContent = '⏳ Abriendo Outlook...';
+  btn.textContent = '⏳ Preparando...';
   btn.disabled = true;
+  let espera = 4000;
   try {{
     const resp = await fetch('http://localhost:8765/enviar-mail', {{
       method: 'POST',
@@ -441,11 +472,23 @@ async function enviarPorMail(btn) {{
       body: JSON.stringify({{ notas, nombre_archivo: nombreArchivo, ruta_html: rutaHtml }}),
     }});
     const data = await resp.json();
-    btn.textContent = data.ok ? '✅ ' + data.mensaje : '❌ ' + data.mensaje;
+
+    if (data.ok && data.modo === 'clipboard' && data.html) {{
+      // El Outlook nuevo no expone COM: se copia con formato y se pega a mano.
+      const copiado = copiarHtmlAlPortapapeles(data.html);
+      btn.textContent = copiado
+        ? '✅ Copiado — abrí un mail nuevo y pegá con Ctrl+V'
+        : '❌ No se pudo copiar al portapapeles';
+      espera = 8000;
+    }} else if (data.ok) {{
+      btn.textContent = '✅ ' + data.mensaje;
+    }} else {{
+      btn.textContent = '❌ ' + data.mensaje;
+    }}
   }} catch (e) {{
     btn.textContent = '❌ No se pudo conectar al bot local';
   }}
-  setTimeout(() => {{ btn.textContent = textoOriginal; btn.disabled = false; }}, 4000);
+  setTimeout(() => {{ btn.textContent = textoOriginal; btn.disabled = false; }}, espera);
 }}
 
 async function reprocesar(btn) {{

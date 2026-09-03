@@ -965,11 +965,20 @@ class ChatHandler(BaseHTTPRequestHandler):
                 #    fuente única de verdad, igual a lo que se manda por mail.
                 regenerar_html(notas, nombre_archivo or Path(ruta_html).name, ruta_html)
 
-                # 2) Arma el HTML "email-safe" y abre el borrador en Outlook
-                #    (Display, no Send — el envío final lo hace el usuario).
+                # 2) Arma el HTML "email-safe" (tablas + estilos inline).
                 email_html = generar_html_email(notas)
                 asunto     = f"{notas.get('titulo', 'Minuta')} — {notas.get('proyecto', '')}".strip(" —")
 
+            except Exception as e:
+                log.error(f"[EnviarMail] Error generando la minuta: {e}")
+                self._json(500, {"ok": False, "mensaje": str(e)})
+                return
+
+            # 3) Intento abrir un borrador en Outlook clásico vía COM (Display,
+            #    nunca Send). El Outlook nuevo (olk.exe) no expone COM, así que
+            #    si falla no es un error: se devuelve el HTML para que el front
+            #    lo copie al portapapeles y el usuario lo pegue en un mail nuevo.
+            try:
                 import win32com.client
                 outlook = win32com.client.Dispatch("Outlook.Application")
                 mail = outlook.CreateItem(0)  # olMailItem
@@ -977,11 +986,21 @@ class ChatHandler(BaseHTTPRequestHandler):
                 mail.HTMLBody = email_html
                 mail.Display()
 
-                self._json(200, {"ok": True, "mensaje": "Borrador abierto en Outlook"})
+                self._json(200, {
+                    "ok": True,
+                    "modo": "outlook",
+                    "mensaje": "Borrador abierto en Outlook",
+                })
 
             except Exception as e:
-                log.error(f"[EnviarMail] Error: {e}")
-                self._json(500, {"ok": False, "mensaje": str(e)})
+                log.info(f"[EnviarMail] Outlook por COM no disponible ({e}); se copia al portapapeles.")
+                self._json(200, {
+                    "ok": True,
+                    "modo": "clipboard",
+                    "html": email_html,
+                    "asunto": asunto,
+                    "mensaje": "Copiado para pegar en Outlook",
+                })
 
         else:
             self.send_response(404)
