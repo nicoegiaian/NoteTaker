@@ -59,6 +59,11 @@ _roadmaps = _cfg.get("roadmaps", {})
 ROADMAPS          = _roadmaps.get("carpetas", {})      # proyecto → carpeta del export HTML
 ROADMAP_MAX_DEPTH = _roadmaps.get("max_profundidad", 5)
 
+# ── JIRA (feed externo) ──────────────────────────────────
+_jira = _cfg.get("jira", {})
+JIRA_FEEDS         = _jira.get("carpetas", {})          # proyecto → carpeta del feed
+JIRA_FRESCURA_DIAS = _jira.get("max_dias_frescura", 3)
+
 # ── Prompts ──────────────────────────────────────────────
 # Los prompts se versionan en el repo (carpeta prompts/, junto al código),
 # no en PM Agent. Ruta relativa al repo para que funcione en cualquier máquina.

@@ -97,6 +97,16 @@ max_profundidad = 5   # hasta qué nivel WBS incluir (módulo=3, fase=4, subfase
 [roadmaps.carpetas]
 "Programa Salesforce" = 'C:\Users\degiaian\OneDrive - ASE Conecta\Documentos\Proyectos\Salesforce\Roadmap'
 
+# ── JIRA (feed que deja un agente externo, ej. Cowork, en OneDrive) ──
+# Por proyecto, opcional. El agente externo extrae de JIRA y escribe un .txt
+# en la carpeta; el digest lo lee y lo cruza con el cronograma. Si el feed más
+# reciente es más viejo que max_dias_frescura, se ignora (evita datos rancios).
+[jira]
+max_dias_frescura = 3
+
+[jira.carpetas]
+"Programa Salesforce" = 'C:\Users\degiaian\OneDrive - ASE Conecta\Documentos\PMO\PM Agent\JIRA_del_dia'
+
 # ── Memoria histórica (digest diario) ───────────────────────
 [memoria]
 # Cuántos digests diarios previos se le pasan al razonamiento para detectar

@@ -9,6 +9,7 @@ REGLAS:
 - Los mails incluyen los que RECIBISTE y los que ENVIASTE vos (De: NicolasEgiaian@medife.com.ar). Tratá los enviados como tu voz: de ahí salen los compromisos que asumiste, tus respuestas y las decisiones que comunicaste — no solo lo que te pidieron.
 - Los DIGESTS RECIENTES son historia (días previos), NO novedades de ayer. Usalos SOLO para detectar tendencias y estancamientos: un tema, riesgo o compromiso que viene apareciendo sin avanzar. No repitas como novedad algo ya reportado; si algo lleva varios días sin moverse, va en "SE TE PUEDE ESTAR ESCAPANDO" indicando desde cuándo (ej: "se viene arrastrando desde el 10/07").
 - El CRONOGRAMA es la AUTORIDAD del calendario. Antes de marcar un módulo/fase/tarea como estancado, atrasado, "sin arrancar" o en riesgo, ubicá en qué punto de su ventana estamos: si TODAVÍA no llegó a su fecha de inicio planificada, su inactividad es ESPERADA — NO la reportes como riesgo ni estancamiento. Solo es alarma si estamos DENTRO o DESPUÉS de la ventana y no se mueve, o si un hito de la ventana actual está vencido. El estado en JIRA o en minutas NO define el timing; el CRONOGRAMA sí. Si no hay cronograma, guiate por los HITOS de la ficha.
+- El bloque JIRA es el rollup de ejecución de los equipos (por módulo/equipo). CRUZALO con el CRONOGRAMA: un módulo o Epic quieto cuya ventana todavía no llegó es ESPERADO — no lo reportes. Reportá solo desvíos DENTRO o DESPUÉS de la ventana (estancado, bloqueado, menos avance del planificado) o scope nuevo relevante. Es altitud de programa: no bajes a Epics sueltas salvo un bloqueo o estancamiento que importe. Si dice "Sin feed de JIRA", omití JIRA.
 - Máximo 5 bullets por sección. Omití por completo las secciones sin contenido.
 - No inventes. Si una fuente dice "Sin ..." o está vacía, ignorala.
 - Usá los nombres propios EXACTOS como figuran en el CONTEXTO DEL PROYECTO (incluido su glosario). Si una fuente (mail, minuta) trae un nombre mal escrito por transcripción, normalizalo a su forma canónica del contexto (ej: "Campdoctor" → "CamDoctor").
@@ -31,6 +32,9 @@ CONTEXTO DEL PROYECTO:
 
 === CRONOGRAMA DEL PROGRAMA (calendario planificado del gantt — AUTORIDAD del timing) ===
 {{CRONOGRAMA}}
+
+=== JIRA — EJECUCIÓN DE LOS EQUIPOS (rollup por módulo/equipo) ===
+{{JIRA}}
 
 === MAILS DE AYER (recibidos y enviados por el PM) ===
 {{MAILS}}
