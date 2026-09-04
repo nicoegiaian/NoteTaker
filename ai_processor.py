@@ -11,7 +11,7 @@ import logging
 import requests
 import urllib3
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 from config import PROYECTOS, PROYECTO_DESCONOCIDO
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -31,6 +31,29 @@ def detectar_proyecto(nombre_archivo: str) -> str:
             return proyecto
     log.warning(f"   No se detecto proyecto en '{nombre_archivo}' -> '{PROYECTO_DESCONOCIDO}'")
     return PROYECTO_DESCONOCIDO
+
+
+_DIAS_SEMANA = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+
+# Nombre de dia fijo por indice: no dependemos del locale del sistema, que en
+# Windows suele estar en ingles y devolveria "Monday".
+def _con_dia_semana(fecha: datetime) -> str:
+    return f"{_DIAS_SEMANA[fecha.weekday()]} {fecha.strftime('%d/%m/%Y')}"
+
+
+def _calendario_referencia(hoy: datetime, dias: int = 14) -> str:
+    """
+    Tabla de los proximos dias ya resueltos (dia de semana + fecha).
+
+    Los LLM fallan al hacer aritmetica de calendario: dandole solo la fecha de
+    hoy, para resolver "el lunes que viene" tienen que deducir que dia cae hoy
+    y contar — y se equivocan (ej: emparejar "lunes" con un miercoles). Con la
+    tabla resuelta solo tienen que copiar.
+    """
+    return " · ".join(
+        f"{_DIAS_SEMANA[(hoy + timedelta(days=i)).weekday()]} {(hoy + timedelta(days=i)).strftime('%d/%m')}"
+        for i in range(1, dias + 1)
+    )
 
 
 def _leer_prompt_notas() -> str:
@@ -116,10 +139,11 @@ def generar_notas(transcript: str, nombre_archivo: str, tipo_forzado: str = None
         tipo_override = ""
         instruccion_tipo = "Analizá el transcript y elegí el tipo que mejor represente el espíritu de la reunión."
 
-    glosario  = leer_glosario(proyecto)
-    fecha_hoy = datetime.now().strftime("%d/%m/%Y")
+    glosario = leer_glosario(proyecto)
+    hoy      = datetime.now()
     prompt = prompt_template.replace("{{NOMBRE_ARCHIVO}}", nombre_archivo)
-    prompt = prompt.replace("{{FECHA_HOY}}", fecha_hoy)
+    prompt = prompt.replace("{{FECHA_HOY}}", _con_dia_semana(hoy))
+    prompt = prompt.replace("{{CALENDARIO}}", _calendario_referencia(hoy))
     prompt = prompt.replace("{{PROYECTO}}", proyecto)
     prompt = prompt.replace("{{TRANSCRIPT}}", transcript)
     prompt = prompt.replace("{{TIPO_OVERRIDE}}", tipo_override)

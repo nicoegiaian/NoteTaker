@@ -3,6 +3,7 @@ Sos un asistente experto en gestión de proyectos. Analizá el siguiente transcr
 REUNIÓN: {{NOMBRE_ARCHIVO}}
 PROYECTO: {{PROYECTO}}
 FECHA DE HOY (día en que se procesa esta reunión): {{FECHA_HOY}}
+PRÓXIMOS DÍAS YA CALCULADOS (copiá de acá, no calcules vos): {{CALENDARIO}}
 {{TIPO_OVERRIDE}}
 
 NOMBRES PROPIOS DEL PROYECTO (glosario canónico):
@@ -98,7 +99,9 @@ Si tipo_reunion = "general":
 ---
 REGLAS GENERALES:
 
-- Para "fecha_limite" de acciones y para cualquier fecha en las secciones (hitos, acuerdos, etc.): si el transcript menciona una fecha RELATIVA ("el viernes que viene", "en 2 semanas", "la semana próxima", "para fin de mes"), calculá la fecha absoluta tomando como referencia la FECHA DE HOY indicada arriba — nunca inventes ni asumas otro año o mes. Si menciona una fecha absoluta explícita, usá esa tal cual. Si no hay referencia suficiente para calcular con confianza, usá "Sin fecha definida" en vez de adivinar.
+- FECHAS — NO hagas aritmética de calendario, es donde más te equivocás. Si el transcript menciona un día de la semana ("el lunes", "el viernes que viene"), buscá ese día en PRÓXIMOS DÍAS YA CALCULADOS y copiá la fecha TAL CUAL. Si menciona un plazo ("en 2 semanas", "la semana próxima"), ubicá el día correspondiente en esa misma tabla.
+- Si nombrás un día de la semana en algún texto, la fecha que le pongas al lado TIENE que ser la que le corresponde en esa tabla. Nunca escribas un par día+fecha que no coincida (ej: "lunes 09/09" cuando el 09/09 es miércoles).
+- Si el transcript da una fecha absoluta explícita, usá esa tal cual. Si no hay referencia suficiente, usá "Sin fecha definida" en vez de adivinar — nunca inventes otro mes o año.
 - Usá los nombres reales del transcript para responsables y participantes
 - Si alguien dice "yo me encargo", identificá quién es por contexto
 - Solo incluí información que esté en el transcript; no inventes datos
