@@ -213,7 +213,6 @@ def _generar_html_nuevo(notas: dict, nombre_archivo: str, fecha_hoy: str, ruta_o
   .reprocesar-btn:hover:not(:disabled) {{ background: #4b5563; }}
   .reprocesar-btn:disabled {{ cursor: not-allowed; opacity: 0.7; }}
 
-  .footer {{ text-align: center; font-size: 12px; color: #bbb; margin-top: 20px; }}
   @media print {{
     body {{ background: white; padding: 0; }}
     .card {{ box-shadow: none; padding: 20px; }}
@@ -313,10 +312,6 @@ def _generar_html_nuevo(notas: dict, nombre_archivo: str, fecha_hoy: str, ruta_o
     </button>
   </div>
 
-</div>
-
-<div class="footer">
-  Generado automáticamente · Meeting Notes Bot · {fecha_hoy}
 </div>
 
 <script>
@@ -615,7 +610,6 @@ def _generar_html_legacy(notas: dict, nombre_archivo: str, fecha_hoy: str) -> st
   .copy-btn {{ display: block; width: 100%; padding: 14px; background: #1a56db; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 32px; transition: background 0.2s; }}
   .copy-btn:hover {{ background: #1e429f; }}
   .copy-btn.copied {{ background: #16a34a; }}
-  .footer {{ text-align: center; font-size: 12px; color: #bbb; margin-top: 20px; }}
   @media print {{ body {{ background: white; padding: 0; }} .card {{ box-shadow: none; padding: 20px; }} .copy-btn {{ display: none; }} }}
 </style>
 </head>
@@ -634,7 +628,6 @@ def _generar_html_legacy(notas: dict, nombre_archivo: str, fecha_hoy: str) -> st
   {"" if not tiene_pendientes else f'<div class="section"><h2>⚠️ Temas Pendientes</h2><ul class="pendientes-list">{html_pendientes}</ul></div>'}
   <button class="copy-btn" onclick="copiarContenido(this)">📋 Copiar todo para pegar en Loop</button>
 </div>
-<div class="footer">Generado automáticamente · Meeting Notes Bot · {fecha_hoy}</div>
 <script>
 function copiarContenido(btn) {{
   const card = document.querySelector('.card');
@@ -843,11 +836,6 @@ def generar_html_email(notas: dict) -> str:
             {filas_acc}
           </table>
         </td></tr>''')
-
-    filas.append(
-        f'<tr><td style="padding-top:24px;font-size:11px;color:#bbb;text-align:center;'
-        f'font-family:{FUENTE};">Generado automáticamente · Meeting Notes Bot · {fecha_hoy}</td></tr>'
-    )
 
     cuerpo = "\n".join(filas)
 
