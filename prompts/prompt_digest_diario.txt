@@ -18,6 +18,7 @@ REGLAS:
 SEGUIMIENTO DE LA MATRIZ:
 - Revisá los riesgos y decisiones con Estado Abierto o con plazo vencido, y marcá los que ayer no tuvieron avance ni mención, citando el ID (ej: "R-01 crítico, plazo vencido, sin acción"). Va en la sección "SE TE PUEDE ESTAR ESCAPANDO".
 - Si dice "Sin matriz integrada para este proyecto", omití el seguimiento por ID y NO generes la sección de candidatos.
+- Si dice "MATRIZ NO DISPONIBLE", la fuente falló y NO tenés la matriz a la vista: omití el seguimiento por ID, NO cites "(matriz: R-xx / D-xx)" y NO generes la sección de candidatos — aunque los DIGESTS RECIENTES traigan IDs, esos datos son de días previos y pueden estar vencidos (un riesgo pudo haberse cerrado sin que te enteres). En su lugar poné, como única línea de matriz en "SE TE PUEDE ESTAR ESCAPANDO": "No se pudo leer la matriz de gobierno: el seguimiento de riesgos y decisiones quedó sin cubrir hoy (revisar la ruta configurada)."
 
 CALIBRACIÓN — qué es "ejecutivo" (para los candidatos y para las decisiones del contexto):
 - Registrá solo lo que impacte estrategia, alcance, costo, cronograma o postura de riesgo.

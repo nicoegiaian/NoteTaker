@@ -544,18 +544,36 @@ def _filas_con_encabezado(ws, marcador: str = "ID"):
     return registros
 
 
+# Marcador que va al prompt cuando el proyecto TIENE matriz integrada pero la
+# lectura falla (ruta movida, archivo bloqueado, encabezados cambiados). Es
+# distinto de "sin matriz integrada": allá no hay nada que seguir, acá hay una
+# fuente caída y el modelo no tiene que hacer de cuenta que la vio.
+MATRIZ_NO_DISPONIBLE = (
+    "** MATRIZ NO DISPONIBLE **: este proyecto TIENE matriz de gobierno integrada, pero hoy "
+    "no se pudo leer (ruta movida, archivo bloqueado o formato cambiado). NO tenés los "
+    "riesgos ni las decisiones a la vista."
+)
+
+
 def leer_matriz(proyecto: str) -> str:
     """Lee la matriz de gobierno del proyecto (solapas de Riesgos y Decisiones)
-    y la devuelve como texto para el prompt. Solo proyectos en MATRIZ_PATHS."""
+    y la devuelve como texto para el prompt. Solo proyectos en MATRIZ_PATHS.
+
+    Devuelve "" si el proyecto no tiene matriz integrada, y MATRIZ_NO_DISPONIBLE
+    si la tiene pero no se pudo leer: el fallo tiene que ser ruidoso (log + prompt),
+    nunca silencioso, porque si no el digest sigue citando IDs de memoria."""
     ruta = MATRIZ_PATHS.get(proyecto)
-    if not ruta or not Path(ruta).exists():
+    if not ruta:
         return ""
+    if not Path(ruta).exists():
+        log.error(f"[Digest] Matriz de {proyecto} NO ENCONTRADA en la ruta configurada: {ruta}")
+        return MATRIZ_NO_DISPONIBLE
     try:
         from openpyxl import load_workbook
         wb = load_workbook(ruta, data_only=True, read_only=True)
     except Exception as e:
-        log.warning(f"[Digest] No se pudo abrir la matriz de {proyecto}: {e}")
-        return ""
+        log.error(f"[Digest] No se pudo abrir la matriz de {proyecto}: {e}")
+        return MATRIZ_NO_DISPONIBLE
 
     def _corto(txt, n=400):
         return txt[:n] + "…" if len(txt) > n else txt
@@ -611,6 +629,11 @@ def leer_matriz(proyecto: str) -> str:
                 partes.append("=== DECISIONES REGISTRADAS ===\n" + "\n".join(lineas))
     finally:
         wb.close()
+
+    if not partes:
+        log.error(f"[Digest] Matriz de {proyecto} abierta pero sin filas útiles "
+                  f"(revisar solapas 'Matriz de Riesgos' / 'Decision Log' y encabezados): {ruta}")
+        return MATRIZ_NO_DISPONIBLE
 
     return "\n\n".join(partes)
 

@@ -61,7 +61,7 @@ digest  = "claude-sonnet-5"
 
 # Matriz de gobierno (riesgos + decisiones) por proyecto. Solo los integrados.
 [matriz_paths]
-"Programa Salesforce" = 'C:\Users\degiaian\OneDrive - ASE Conecta\CORPO - Gerencia de Proyectos Corporativos - Proyectos en curso\Salesforce HealthCloud\2. Planificación\Matriz de Anexos Salesforce.xlsx'
+"Programa Salesforce" = 'C:\Users\degiaian\OneDrive - ASE Conecta\CORPO - Gerencia de Proyectos Corporativos - Proyectos en curso\Salesforce HealthCloud\2. Planificación\Riesgos\Matriz de Anexos Salesforce.xlsx'
 
 # ── Filtros de mails (digest diario) ────────────────────────
 [filtros]
